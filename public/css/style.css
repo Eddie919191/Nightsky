@@ -1,0 +1,233 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Lora', serif;
+    background: #04020B;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+body.portal-bg {
+    background: linear-gradient(180deg, #04020B, #1A2B4F);
+    background-size: 100% 200%;
+    animation: subtleDrift 30s linear infinite;
+}
+
+@keyframes subtleDrift {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 0% 200%; }
+}
+
+.portals {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 50px;
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.5s;
+}
+
+.portal img {
+    width: 200px;
+    height: auto;
+    border-radius: 10px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.portal img:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15 betegségpx rgba(212, 160, 23, 0.3);
+}
+
+.login-container {
+    text-align: center;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.5s;
+}
+
+.login-text {
+    font-family: 'Lora', serif;
+    font-size: 1.2em;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.7s;
+}
+
+.login-container input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: transparent;
+    color: #e0e0e0;
+    font-family: 'Lora', serif;
+}
+
+.login-container label {
+    font-size: 0.9em;
+    color: #b0b0b0;
+}
+
+.login-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.login-buttons button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background: #d4a017;
+    color: #04020B;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.login-buttons button:hover {
+    background: #e0b030;
+}
+
+body.eden-bg {
+    background: linear-gradient(90deg, #1A3C6B, #2A5C9B, #1A3C6B);
+    background-size: 200% 100%;
+    animation: drift 20s linear infinite;
+}
+
+body.agapeus-bg {
+    background: linear-gradient(90deg, #660000, #990000, #660000);
+    background-size: 200% 100%;
+    animation: drift 15s linear infinite;
+}
+
+@keyframes drift {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+.chat-container {
+    max-width: 600px;
+    width: 90%;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    backdrop-filter: blur(5px);
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 0.5s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.chat-messages {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.chat-message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 5px;
+    opacity: 0;
+    animation: slideIn 0.5s ease forwards;
+}
+
+.chat-message.user {
+    background: rgba(255, 255, 255, 0.1);
+    margin-left: 20%;
+    text-align: right;
+}
+
+.chat-message.ai {
+    background: rgba(0, 0, 0, 0.2);
+    margin-right: 20%;
+    text-align: left;
+}
+
+#chat-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background: transparent;
+    color: #e0e0e0;
+    font-family: inherit;
+    resize: none;
+    overflow: hidden;
+}
+
+#chat-input:focus {
+    outline: none;
+    border-color: #d4a017;
+}
+
+.back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 1.2em;
+    color: #b0b0b0;
+    text-decoration: none;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.back-btn:hover {
+    opacity: 1;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+    .portals {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .portal img {
+        width: 150px;
+    }
+    .chat-container {
+        width: 95%;
+    }
+    .chat-message.user {
+        margin-left: 10%;
+    }
+    .chat-message.ai {
+        margin-right: 10%;
+    }
+    .login-container {
+        width: 95%;
+    }
+}

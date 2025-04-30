@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Reflections Sanctuary</title>
+    <link rel="stylesheet" href="/public/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lora&display=swap" rel="stylesheet">
+</head>
+<body class="portal-bg">
+    <div class="login-container">
+        <div class="login-text">
+            Welcome to the Sanctuary.<br>
+            Enter your credentials to begin your journey.
+        </div>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username" required autocomplete="username">
+            <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+            <label><input type="checkbox" id="remember"> Remember me</label>
+            <div class="login-buttons">
+                <button type="submit" id="login-btn">Login</button>
+                <button type="button" id="register-btn">Register</button>
+            </div>
+        </form>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="/public/js/auth.js"></script>
+</body>
+</html>
