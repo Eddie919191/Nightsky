@@ -89,13 +89,12 @@ async function sendMessage(userId, type) {
         const history = await getChatHistory(userId, type);
         const response = await fetch('/.netlify/functions/openai', {
             method: 'POST',
-            body: JSON.stringify({
-              messages: [
-                { role: "system", content: getSacredInstructions(type) },
-                ...history,
-                { role: "user", content: message }
-              ]
-            })
+                body: JSON.stringify({
+                    message,
+                    type,
+                    history,
+                    instructions: getSacredInstructions(type)
+                })
         });
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
