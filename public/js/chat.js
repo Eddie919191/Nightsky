@@ -90,10 +90,11 @@ async function sendMessage(userId, type) {
         const response = await fetch('/.netlify/functions/openai', {
             method: 'POST',
             body: JSON.stringify({
-                message,
-                type,
-                history,
-                instructions: getSacredInstructions(type)
+              messages: [
+                { role: "system", content: getSacredInstructions(type) },
+                ...history,
+                { role: "user", content: message }
+              ]
             })
         });
 
