@@ -20,7 +20,7 @@ const db = firebase.firestore();
 
 let stars = [];
 let fadeAlpha = 0;
-let burstTimer = 0; // Tracks burst duration
+let burstTimer = 0;
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -117,7 +117,7 @@ function draw() {
         rect(0, 0, width, height);
     }
 
-    // Fallback star to confirm rendering
+    // Fallback star
     if (stars.length === 0) {
         fill(255, 255, 0);
         noStroke();
@@ -125,20 +125,17 @@ function draw() {
     }
 
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
-    burstTimer = min(burstTimer + 1, 180); // ~3 seconds at 60 FPS
+    burstTimer = min(burstTimer + 1, 180);
 
     stars.forEach(star => {
-        // Validate position
         if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y)) {
             star.pos = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
             console.log('Fixed invalid position for star:', star.id);
         }
-        // Clamp to canvas
         star.pos.x = constrain(star.pos.x, 0, width);
         star.pos.y = constrain(star.pos.y, 0, height);
 
         let force = createVector(0, 0);
-        // Non-linear deceleration: forceMult = 0.0003 + (0.01 - 0.0003) * exp(-3 * t/180)
         const t = burstTimer;
         const forceMult = 0.0003 + (0.01 - 0.0003) * Math.exp(-3 * t / 180);
         const velLimit = 0.15 + (1 - 0.15) * Math.exp(-3 * t / 180);
@@ -148,7 +145,7 @@ function draw() {
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.0005; // Slower rotation
+            star.angle += 0.0005;
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(forceMult);
@@ -156,7 +153,6 @@ function draw() {
             force.add(p5.Vector.sub(originalTarget, star.pos).mult(forceMult * 0.2));
         }
 
-        // Attraction and repulsion for same-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion === star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
@@ -170,7 +166,6 @@ function draw() {
             }
         });
 
-        // Repulsion from different-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion !== star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
@@ -182,18 +177,17 @@ function draw() {
         });
 
         star.vel.add(force);
-        star.vel.mult(0.95); // Stronger damping
-        star.vel.limit(velLimit); // Dynamic velocity limit
+        star.vel.mult(0.95);
+        star.vel.limit(velLimit);
         star.pos.add(star.vel);
 
-        // Draw star
+        // Draw star with exponential growth
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const length = star.candles > 0 ? (8 + star.candles * 2) * pulse : 4;
-        const thickness = star.candles > 0 ? (2 + star.candles * 0.5) * pulse : 1;
+        const length = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Base=4, max growth=20
+        const thickness = 1 + 5 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Base=1, max growth=5
 
-        // Yellow glow for read/unread
         if (!star.read) {
             fill(255, 255, 0, 20);
             noStroke();
@@ -214,7 +208,6 @@ function draw() {
             line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         }
 
-        // X-shaped star
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         strokeWeight(thickness);
         line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
@@ -225,15 +218,15 @@ function draw() {
 
 function mousePressed() {
     stars.forEach(star => {
-        const size = star.candles > 0 ? 8 + star.candles * 2 : 4;
+        const size = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)); // Match length
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
-            showCandleModal(star);
+            showCandleModal(star, true); // Open candle interface directly
         }
     });
 }
 
-function showCandleModal(star) {
+function showCandleModal(star, openCandleInterface = false) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     const [r, g, b] = colors[star.emotion];
@@ -254,17 +247,20 @@ function showCandleModal(star) {
             <div class="modal-content">
                 <p style="color: rgb(${r}, ${g}, ${b})">${star.text}</p>
                 <p>${candleDisplay || 'No candles yet'}</p>
-                <select id="candle-emotion">
-                    <option value="grief">Grief</option>
-                    <option value="love">Love</option>
-                    <option value="wonder">Wonder</option>
-                    <option value="hope">Hope</option>
-                    <option value="anger">Anger</option>
-                    <option value="trust">Trust</option>
-                </select>
-                <textarea id="candle-message" placeholder="Your message..."></textarea>
-                <button onclick="saveCandle('${star.id}')">Light Candle</button>
-                <button onclick="this.closest('.modal').remove()">Cancel</button>
+                ${openCandleInterface ? `
+                    <select id="candle-emotion">
+                        <option value="love" selected>Love</option>
+                        <option value="grief">Grief</option>
+                        <option value="wonder">Wonder</option>
+                        <option value="hope">Hope</option>
+                        <option value="anger">Anger</option>
+                        <option value="trust">Trust</option>
+                    </select>
+                    <textarea id="candle-message" placeholder="Your message (optional)..."></textarea>
+                    <button onclick="saveCandle('${star.id}')"><span style="font-size: 1.5em;">🔥</span></button>
+                ` : ''}
+                <button onclick="this.closest('.modal').remove()">Close</button>
+                ${!openCandleInterface ? `<button onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span style="font-size: 1.2em;">🔥</span></button>` : ''}
             </div>
         `;
         document.body.appendChild(modal);
@@ -272,12 +268,8 @@ function showCandleModal(star) {
 }
 
 async function saveCandle(momentId) {
-    const message = document.getElementById('candle-message').value.trim();
+    const message = document.getElementById('candle-message')?.value.trim() || '';
     const candleEmotion = document.getElementById('candle-emotion').value;
-    if (!message) {
-        alert('Please enter a candle message.');
-        return;
-    }
     try {
         console.log('Saving candle for moment:', momentId);
         await db.collection('sharedMoments').doc(momentId).collection('candles').add({
