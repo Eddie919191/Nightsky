@@ -75,7 +75,7 @@ async function loadStars() {
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
-            const emotion = emotions.includes(data.emotion) ? data.emotion : 'love'; // Fallback
+            const emotion = emotions.includes(data.emotion) ? data.emotion : 'love';
             const initialPos = {
                 x: centers.love.x * width + random(-50, 50),
                 y: centers.love.y * height + random(-50, 50)
@@ -90,7 +90,7 @@ async function loadStars() {
                 read: data.read || false,
                 pos: createVector(initialPos.x, initialPos.y),
                 vel: p5.Vector.random2D().mult(0.1),
-                target: createVector(centers[emotion].x * width, centers[emotion].y * height), // Fixed
+                target: createVector(centers[emotion].x * width, centers[emotion].y * height),
                 angle: random(TWO_PI)
             };
         });
@@ -258,11 +258,27 @@ function showCandleModal(star, openCandleInterface = false) {
                         <option value="trust">Trust</option>
                     </select>
                     <textarea id="candle-message" placeholder="Your message (optional)..."></textarea>
-                    <button class="candle-btn"><span>🔥</span></button>
-                ` : ''}
+                    <div class="modal-buttons">
+                        <button class="candle-btn" onclick="saveCandle('${star.id}')"><span>🔥</span></button>
+                        <button class="close-btn" onclick="document.querySelector('.modal').remove()">Cancel</button>
+                    </div>
+                ` : `
+                    <div class="modal-buttons">
+                        <button class="close-btn" onclick="document.querySelector('.modal').remove()">Close</button>
+                        <button class="open-candle-btn" onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span>🔥</span></button>
+                    </div>
+                `}
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }).catch(error => {
+        console.error('Error loading candles:', error);
+        modal.innerHTML = `
+            <div class="modal-content">
+                <p style="color: rgb(${r}, ${g}, ${b})">${star.text}</p>
+                <p>Error loading candles</p>
                 <div class="modal-buttons">
-                    <button class="close-btn">Close</button>
-                    ${!openCandleInterface ? `<button class="open-candle-btn" onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span>🔥</span></button>` : ''}
+                    <button class="close-btn" onclick="document.querySelector('.modal').remove()">Close</button>
                 </div>
             </div>
         `;
@@ -271,10 +287,10 @@ function showCandleModal(star, openCandleInterface = false) {
 }
 
 async function saveCandle(momentId) {
-    const message = document.getElementById('candle-message')?.value.trim() || '';
+    console.log('Attempting to save candle for moment:', momentId);
+    const message = document.getElementById('candle-emotion')?.value;
     const candleEmotion = document.getElementById('candle-emotion').value;
     try {
-        console.log('Saving candle for moment:', momentId);
         await db.collection('sharedMoments').doc(momentId).collection('candles').add({
             message,
             emotion: candleEmotion,
@@ -300,7 +316,7 @@ async function saveCandle(momentId) {
                 originalEmotion: currentEmotion
             });
         }
-        console.log('Candle saved');
+        console.log('Candle saved successfully');
         document.querySelector('.modal').remove();
         const star = stars.find(s => s.id === momentId);
         if (star) {
@@ -309,7 +325,7 @@ async function saveCandle(momentId) {
         }
     } catch (error) {
         console.error('Error saving candle:', error);
-        alert('Error saving candle.');
+        alert('Error saving candle: ' + error.message);
     }
 }
 
