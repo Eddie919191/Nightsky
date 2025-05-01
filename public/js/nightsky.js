@@ -58,16 +58,21 @@ async function loadStars() {
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
+            // Start near Love center for smoother orbiting
+            const initialPos = {
+                x: centers.love.x * width + random(-50, 50),
+                y: centers.love.y * height + random(-50, 50)
+            };
             return {
                 id: doc.id,
                 text: data.text,
                 emotion: data.emotion,
                 brightness: data.brightness,
                 candles: data.candles,
-                pos: createVector(data.position.x * width / 100, data.position.y * height / 100),
-                vel: p5.Vector.random2D().mult(0.1), // Lower initial velocity
+                pos: createVector(initialPos.x, initialPos.y),
+                vel: p5.Vector.random2D().mult(0.1),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
-                angle: 0 // For orbiting
+                angle: random(TWO_PI) // Random initial angle for orbiting
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -82,43 +87,52 @@ function draw() {
     const loveCenter = { x: 0.2 * width, y: 0.2 * height };
 
     stars.forEach(star => {
-        let force;
+        let force = createVector(0, 0);
         if (star.emotion === 'love') {
-            // Love stars move to center
-            force = p5.Vector.sub(star.target, star.pos).mult(0.001); // Slower attraction
+            // Love stars stay fixed at center
+            force = p5.Vector.sub(star.target, star.pos).mult(0.002);
         } else {
             // Non-love stars orbit love center
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.002; // Slower counterclockwise rotation
+            star.angle += 0.002; // Slow rotation
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
-            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005); // Slower orbit
+            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
         }
 
-        // Repulsion for bright stars
-        if (star.brightness > 1) {
-            stars.forEach(other => {
-                if (other !== star) {
-                    let d = p5.Vector.dist(star.pos, other.pos);
-                    if (d < 50 && d > 0) {
-                        let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 * star.brightness / d);
-                        force.add(repel);
-                    }
+        // Attraction to same-emotion stars
+        stars.forEach(other => {
+            if (other !== star && other.emotion === star.emotion) {
+                let d = p5.Vector.dist(star.pos, other.pos);
+                if (d < 100 && d > 0) {
+                    let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0002 / d);
+                    force.add(attract);
                 }
-            });
-        }
+            }
+        });
+
+        // Repulsion from different-emotion stars
+        stars.forEach(other => {
+            if (other !== star && other.emotion !== star.emotion) {
+                let d = p5.Vector.dist(star.pos, other.pos);
+                if (d < 80 && d > 0) {
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.02 / d);
+                    force.add(repel);
+                }
+            }
+        });
 
         star.vel.add(force);
-        star.vel.mult(0.9); // Stronger damping
-        star.vel.limit(0.3); // Lower speed limit
+        star.vel.mult(0.9);
+        star.vel.limit(0.3);
         star.pos.add(star.vel);
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
         fill(r, g, b, 200 + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         noStroke();
-        const size = 12 + star.brightness * 4; // Larger stars
+        const size = 12 + star.brightness * 4;
         ellipse(star.pos.x, star.pos.y, size, size);
     });
 }
