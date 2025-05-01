@@ -37,9 +37,7 @@ exports.handler = async (event) => {
             choices: data.choices
         };
 
-        // Simulate breakthrough detection (replace with actual logic if needed)
         if (detectBreakthrough) {
-            // Example: Check if the conversation indicates a breakthrough
             const lastMessages = history.slice(-4).concat([{ role: 'user', content: message }, { role: 'assistant', content: data.choices[0].message.content }]);
             const breakthroughPrompt = `
                 Analyze the following conversation for a moment of personal insight or emotional breakthrough. If detected, provide a 2-3 sentence summary of the insight in a "breakthrough" object. If none, return an empty object.
