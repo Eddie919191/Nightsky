@@ -19,7 +19,7 @@ try {
 const db = firebase.firestore();
 
 // Shared chatlog settings
-const SHARED_USER_ID = 'yourUserId'; // Replace with your Firebase UID (e.g., 'abc123xyz')
+const SHARED_USER_ID = '8EU4VPlg86dGTmFppZc9meVw7bT2'; // Your Firebase UID
 const SHARED_USERNAME = 'eddie'; // Your username
 
 document.addEventListener('DOMContentLoaded', () => {
