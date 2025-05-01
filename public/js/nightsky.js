@@ -48,7 +48,6 @@ function setup() {
         }
         console.log('Authenticated user:', user.uid);
         loadStars();
-        // Listen for candle changes
         db.collection('sharedMoments').onSnapshot(snapshot => {
             snapshot.docChanges().forEach(change => {
                 if (change.type === 'modified') {
@@ -82,7 +81,7 @@ async function loadStars() {
                 id: doc.id,
                 text: data.text,
                 emotion: data.emotion,
-                originalEmotion: data.originalEmotion || data.emotion, // Store original
+                originalEmotion: data.originalEmotion || data.emotion,
                 brightness: data.brightness || 1,
                 candles: data.candles || 0,
                 read: data.read || false,
@@ -129,7 +128,6 @@ function draw() {
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
-            // Slight pull to original emotion
             const originalTarget = createVector(centers[star.originalEmotion].x * width, centers[star.originalEmotion].y * height);
             force.add(p5.Vector.sub(originalTarget, star.pos).mult(0.0001));
         }
@@ -171,17 +169,29 @@ function draw() {
         const length = star.candles > 0 ? (8 + star.candles * 2) * pulse : 4;
         const thickness = star.candles > 0 ? (2 + star.candles * 0.5) * pulse : 1;
 
-        // Golden glow for read/unread
-        const glowAlpha = star.read ? 20 : 60;
-        fill(255, 215, 0, glowAlpha / 2);
-        noStroke();
-        ellipse(star.pos.x, star.pos.y, length * 3, length * 3); // Larger glow
-        stroke(255, 215, 0, star.read ? 40 : 100);
-        strokeWeight(0.5);
-        line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
-        line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
+        // Yellow glow for read/unread
+        if (!star.read) {
+            // Layered glow for fading effect
+            fill(255, 255, 0, 20); // Outer faint yellow
+            noStroke();
+            ellipse(star.pos.x, star.pos.y, length * 4, length * 4);
+            fill(255, 255, 0, 50); // Inner bright yellow
+            ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
+            stroke(255, 255, 0, 100); // Bright outline
+            strokeWeight(0.5);
+            line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
+            line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
+        } else {
+            fill(255, 255, 0, 10); // Dim yellow for read
+            noStroke();
+            ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
+            stroke(255, 255, 0, 40);
+            strokeWeight(0.5);
+            line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
+            line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
+        }
 
-        // X-shaped star
+        // X-shaped star (drawn after glow to ensure visibility)
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         strokeWeight(thickness);
         line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
@@ -204,7 +214,6 @@ function showCandleModal(star) {
     const modal = document.createElement('div');
     modal.className = 'modal';
     const [r, g, b] = colors[star.emotion];
-    // Fetch candle counts per emotion
     db.collection('sharedMoments').doc(star.id).collection('candles').get().then(snapshot => {
         const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
         snapshot.forEach(doc => {
@@ -258,7 +267,6 @@ async function saveCandle(momentId) {
             candles: firebase.firestore.FieldValue.increment(1),
             brightness: firebase.firestore.FieldValue.increment(0.1)
         });
-        // Check for emotion shift
         const snapshot = await db.collection('sharedMoments').doc(momentId).collection('candles').get();
         const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
         snapshot.forEach(doc => {
