@@ -65,9 +65,9 @@ async function loadStars() {
                 brightness: data.brightness,
                 candles: data.candles,
                 pos: createVector(data.position.x * width / 100, data.position.y * height / 100),
-                vel: p5.Vector.random2D().mult(0.2), // Reduced initial velocity
+                vel: p5.Vector.random2D().mult(0.1), // Lower initial velocity
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
-                angle: 0 // For orbiting non-love stars
+                angle: 0 // For orbiting
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -79,21 +79,21 @@ async function loadStars() {
 
 function draw() {
     background(10, 10, 35);
-    const loveCenter = { x: 0.2 * width, y: 0.2 * height }; // Compute dynamically
+    const loveCenter = { x: 0.2 * width, y: 0.2 * height };
 
     stars.forEach(star => {
         let force;
         if (star.emotion === 'love') {
-            // Love stars move to their center
-            force = p5.Vector.sub(star.target, star.pos).mult(0.002);
+            // Love stars move to center
+            force = p5.Vector.sub(star.target, star.pos).mult(0.001); // Slower attraction
         } else {
-            // Non-love stars orbit love center counterclockwise
+            // Non-love stars orbit love center
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.005; // Slow counterclockwise rotation
+            star.angle += 0.002; // Slower counterclockwise rotation
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
-            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.001);
+            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005); // Slower orbit
         }
 
         // Repulsion for bright stars
@@ -110,22 +110,22 @@ function draw() {
         }
 
         star.vel.add(force);
-        star.vel.mult(0.95); // Damping for stability
-        star.vel.limit(0.5);
+        star.vel.mult(0.9); // Stronger damping
+        star.vel.limit(0.3); // Lower speed limit
         star.pos.add(star.vel);
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
         fill(r, g, b, 200 + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         noStroke();
-        const size = 8 + star.brightness * 3;
+        const size = 12 + star.brightness * 4; // Larger stars
         ellipse(star.pos.x, star.pos.y, size, size);
     });
 }
 
 function mousePressed() {
     stars.forEach(star => {
-        const size = 8 + star.brightness * 3;
+        const size = 12 + star.brightness * 4;
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             showCandleModal(star);
         }
@@ -168,7 +168,7 @@ async function saveCandle(momentId) {
         });
         console.log('Candle saved');
         document.querySelector('.modal').remove();
-        loadStars(); // Refresh stars
+        loadStars();
     } catch (error) {
         console.error('Error saving candle:', error);
         alert('Error saving candle.');
