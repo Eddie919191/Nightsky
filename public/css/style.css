@@ -27,10 +27,12 @@ body.portal-bg::before {
     height: 100%;
     background: url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
     background-size: cover;
-    transform: rotate(180deg);
+    transform: rotate(180deg) !important; /* Ensure ground at top, sky at bottom */
     transform-origin: center center;
     z-index: -1;
 }
+
+/* Full-Page Gradient Overlay */
 body.portal-bg::after {
     content: '';
     position: fixed;
@@ -38,10 +40,11 @@ body.portal-bg::after {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(to bottom, #0A0A23 0%, transparent 70%);
+    background: linear-gradient(to bottom, #0A0A23 0%, transparent 100%); /* Smoother fade */
     pointer-events: none;
     z-index: 0; /* Above background, below stars/portals */
 }
+
 /* Stars Container (Fixed to Top) */
 .stars {
     position: fixed;
@@ -65,6 +68,7 @@ body.portal-bg::after {
     transition: box-shadow 0.3s ease;
     cursor: pointer;
 }
+
 /* Emotion Colors */
 .star-1 { background: #FF9999; } /* Love: Pink */
 .star-2 { background: #FFFF99; } /* Joy: Yellow */
@@ -73,9 +77,89 @@ body.portal-bg::after {
 .star-5 { background: #99FF99; } /* Hope: Green */
 .star-6 { background: #CC99FF; } /* Compassion: Purple */
 
-/* Hover Text for Love (star-1) */
+/* Hover Text Labels */
 .star-1:hover::before {
     content: 'Love';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lora', serif;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    background: rgba(4, 2, 11, 0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeInText 0.3s ease forwards;
+}
+
+.star-2:hover::before {
+    content: 'Joy';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lora', serif;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    background: rgba(4, 2, 11, 0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeInText 0.3s ease forwards;
+}
+
+.star-3:hover::before {
+    content: 'Peace';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lora', serif;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    background: rgba(4, 2, 11, 0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeInText 0.3s ease forwards;
+}
+
+.star-4:hover::before {
+    content: 'Courage';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lora', serif;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    background: rgba(4, 2, 11, 0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeInText 0.3s ease forwards;
+}
+
+.star-5:hover::before {
+    content: 'Hope';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Lora', serif;
+    font-size: 0.8em;
+    color: #e0e0e0;
+    background: rgba(4, 2, 11, 0.7);
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0;
+    animation: fadeInText 0.3s ease forwards;
+}
+
+.star-6:hover::before {
+    content: 'Compassion';
     position: absolute;
     top: -20px;
     left: 50%;
@@ -95,35 +179,28 @@ body.portal-bg::after {
     to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-/* Shaking Animation */
-@keyframes shake {
+/* Humming Animation */
+@keyframes hum {
     0% { transform: translateX(0); }
-    25% { transform: translateX(2px) rotate(2deg); }
-    50% { transform: translateX(-2px) rotate(-2deg); }
-    75% { transform: translateX(2px) rotate(2deg); }
+    50% { transform: translateX(0.5px) translateY(0.5px); }
     100% { transform: translateX(0); }
 }
 
-/* Hover Effect: Shake All Stars */
+/* Hover Effect: Hum All Stars */
 .stars:hover .star {
-    animation: shake 0.3s ease infinite;
+    animation: hum 0.1s ease infinite; /* Fast, subtle hum */
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.5);
 }
 
-/* Arc Pattern for Stars */
-.star-1 { transform: translate(-120px, 20px); }
-.star-2 { transform: translate(-80px, 10px); }
-.star-3 { transform: translate(-40px, 0); }
-.star-4 { transform: translate(0, 0); }
-.star-5 { transform: translate(40px, 10px); }
-.star-6 { transform: translate(80px, 20px); }
+/* Static Star Positions */
+.star-1 { left: -150px; }
+.star-2 { left: -100px; }
+.star-3 { left: -50px; }
+.star-4 { left: 0; }
+.star-5 { left: 50px; }
+.star-6 { left: 100px; }
 
-/* Hover Effect: Highlight All Stars */
-.stars:hover .star {
-    transform: scale(1.2);
-    box-shadow: 0 0 15px rgba(255, 255, 200, 0.8), 0 0 30px rgba(255, 255, 0, 0.5);
-}
-
+/* Portals Container (Fixed to Bottom) */
 .portals {
     position: fixed;
     bottom: 20px;
@@ -157,8 +234,8 @@ body.portal-bg::after {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 200px; /* Covers ~bottom half of 400px-tall portals */
-    background: linear-gradient(to bottom, #0A0A23 0%, transparent 70%); /* Reversed */
+    height: 400px; /* Covers full ~400px-tall portals */
+    background: linear-gradient(to bottom, #0A0A23 0%, transparent 100%); /* Black to transparent */
     pointer-events: none;
     z-index: 1002;
 }
@@ -410,7 +487,7 @@ body.agapeus-bg {
 }
 
 .modal-content button {
-    paddingminim: 12px 24px;
+    padding: 12px 24px;
     margin: 10px 5px;
     border: none;
     border-radius: 5px;
@@ -545,17 +622,17 @@ body.agapeus-bg {
     .star {
         width: 15px;
         height: 15px;
-        box-shadow: 0 0 8px rgba(255, 255, 200, 0.5), 0 0 15px rgba(255, 255, 0, 0.3);
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.3); /* Updated for consistency */
     }
 
-    .star-1 { transform: translate(-100px, 15px); }
-    .star-2 { transform: translate(-60px, 5px); }
-    .star-3 { transform: translate(-30px, 0); }
-    .star-4 { transform: translate(0, 0); }
-    .star-5 { transform: translate(30px, 5px); }
-    .star-6 { transform: translate(80px, 20px); }
+    .star-1 { left: -120px; }
+    .star-2 { left: -80px; }
+    .star-3 { left: -40px; }
+    .star-4 { left: 0; }
+    .star-5 { left: 40px; }
+    .star-6 { left: 80px; }
 
-     .portals {
+    .portals {
         flex-direction: column;
         gap: 20px;
         bottom: 10px;
@@ -566,53 +643,9 @@ body.agapeus-bg {
     }
 
     .portals::after {
-        height: 150px; /* Covers ~bottom half of 300px-tall portals */
+        height: 300px; /* Covers full ~300px-tall portals */
     }
 
     .chat-container {
         width: 95%;
     }
-
-    .chat-message.user {
-        margin-left: 10%;
-    }
-
-    .chat-message.ai {
-        margin-right: 10%;
-    }
-
-    .login-container {
-        width: 95%;
-    }
-
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-    }
-
-    .modal-content button {
-        padding: 10px 20px;
-    }
-
-    .modal-content .candle-btn span {
-        font-size: 1.3em;
-    }
-
-    .modal-content .open-candle-btn span {
-        font-size: 1.1em;
-    }
-
-    .portal-btn {
-        padding: 8px 16px;
-        font-size: 0.9em;
-    }
-
-    .user-icon {
-        padding: 8px;
-        font-size: 1.3em;
-    }
-
-    .user-candles-modal .modal-content {
-        padding: 20px;
-    }
-}
