@@ -19,11 +19,13 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 model: 'gpt-4o',
                 messages,
+                max_tokens: 500,
                 temperature: 0.7
             })
         });
 
         if (!response.ok) {
+            console.error('OpenAI API error:', response.status);
             return {
                 statusCode: response.status,
                 body: JSON.stringify({ error: `HTTP error! status: ${response.status}` })
