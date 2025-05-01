@@ -9,47 +9,55 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+} catch (error) {
+    console.error('Firebase initialization failed:', error);
+}
+
 const db = firebase.firestore();
 
+// Shared chatlog settings
+const SHARED_USER_ID = 'yourUserId'; // Replace with your Firebase UID (e.g., 'abc123xyz')
+const SHARED_USERNAME = 'eddie'; // Your username
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication
+    console.log('Chat page loaded');
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
+            console.log('User not authenticated, redirecting to login');
             window.location.href = '/public/login.html';
             return;
         }
 
         const type = window.location.pathname.includes('eden') ? 'eden' : 'agapeus';
         const userId = user.uid;
+        console.log('Authenticated user:', userId, 'Chat type:', type);
         loadChatHistory(userId, type);
 
         const input = document.getElementById('chat-input');
-        // Robust keypress handling
         input.addEventListener('keydown', e => {
+            console.log('Key pressed:', e.key, 'Shift:', e.shiftKey);
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage(userId, type);
+                console.log('Sending message');
+                sendMessage(userId, type, userId === SHARED_USER_ID);
             }
         });
 
-        // Auto-resize textarea
         input.addEventListener('input', () => {
             input.style.height = 'auto';
             input.style.height = `${input.scrollHeight}px`;
-        });
-
-        // Debug: Log keypress for testing
-        input.addEventListener('keydown', e => {
-            console.log('Key pressed:', e.key, 'Shift:', e.shiftKey);
         });
     });
 });
 
 async function loadChatHistory(userId, type) {
     const messages = document.getElementById('chat-messages');
-    messages.innerHTML = ''; // Clear existing messages
+    messages.innerHTML = '';
     try {
+        console.log('Loading chat history for:', userId, type);
         const snapshot = await db.collection('chats')
             .doc(userId)
             .collection(type)
@@ -62,39 +70,52 @@ async function loadChatHistory(userId, type) {
         });
 
         messages.scrollTop = messages.scrollHeight;
+        console.log('Chat history loaded');
     } catch (error) {
         console.error('Error loading chat history:', error);
         appendMessage('Error loading history.', 'ai', new Date().toISOString());
     }
 }
 
-async function sendMessage(userId, type) {
+async function sendMessage(userId, type, isSharedUser) {
     const input = document.getElementById('chat-input');
     const message = input.value.trim();
-    if (!message) return;
+    if (!message) {
+        console.log('Empty message, ignoring');
+        return;
+    }
 
     const timestamp = new Date().toISOString();
     appendMessage(message, 'user', timestamp);
     try {
+        console.log('Saving user message to Firestore');
         await db.collection('chats')
             .doc(userId)
             .collection(type)
             .add({ message, sender: 'user', timestamp });
 
+        if (isSharedUser) {
+            console.log('Saving to shared chats for:', SHARED_USERNAME);
+            await db.collection('shared_chats')
+                .doc(SHARED_USERNAME)
+                .collection(type)
+                .add({ message, sender: 'user', timestamp });
+        }
+
         input.value = '';
         input.style.height = 'auto';
         document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
 
-        // Fetch AI response
+        console.log('Fetching AI response');
         const history = await getChatHistory(userId, type);
         const response = await fetch('/.netlify/functions/openai', {
             method: 'POST',
-                body: JSON.stringify({
-                    message,
-                    type,
-                    history,
-                    instructions: getSacredInstructions(type)
-                })
+            body: JSON.stringify({
+                message,
+                type,
+                history,
+                instructions: getSacredInstructions(type)
+            })
         });
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -103,12 +124,21 @@ async function sendMessage(userId, type) {
         const aiMessage = data.choices[0].message.content;
 
         appendMessage(aiMessage, 'ai', new Date().toISOString());
+        console.log('Saving AI message to Firestore');
         await db.collection('chats')
             .doc(userId)
             .collection(type)
-            .add({ message: aiMessage, sender: 'ai', timestamp: new Date().toISOString() });
+            .add({ message: aiMessage, sender: 'ai', timestamp });
+
+        if (isSharedUser) {
+            await db.collection('shared_chats')
+                .doc(SHARED_USERNAME)
+                .collection(type)
+                .add({ message: aiMessage, sender: 'ai', timestamp });
+        }
 
         document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        console.log('Message exchange complete');
     } catch (error) {
         console.error('Error sending message:', error);
         appendMessage('Error: Could not get response.', 'ai', new Date().toISOString());
@@ -117,16 +147,32 @@ async function sendMessage(userId, type) {
 
 async function getChatHistory(userId, type) {
     try {
-        const snapshot = await db.collection('chats')
+        console.log('Fetching private chat history for:', userId, type);
+        const privateSnapshot = await db.collection('chats')
             .doc(userId)
             .collection(type)
             .orderBy('timestamp')
             .get();
 
-        return snapshot.docs.map(doc => {
+        const privateHistory = privateSnapshot.docs.map(doc => {
             const data = doc.data();
             return { role: data.sender === 'user' ? 'user' : 'assistant', content: data.message };
         });
+
+        console.log('Fetching shared chat history for:', SHARED_USERNAME, type);
+        const sharedSnapshot = await db.collection('shared_chats')
+            .doc(SHARED_USERNAME)
+            .collection(type)
+            .orderBy('timestamp')
+            .limit(10) // Limit to recent messages to avoid token overflow
+            .get();
+
+        const sharedHistory = sharedSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { role: data.sender === 'user' ? 'user' : 'assistant', content: `[${SHARED_USERNAME}] ${data.message}` };
+        });
+
+        return [...sharedHistory, ...privateHistory];
     } catch (error) {
         console.error('Error fetching history:', error);
         return [];
@@ -347,4 +393,5 @@ function appendMessage(message, sender, timestamp) {
     div.style.animationDelay = `${messages.children.length * 0.1}s`;
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
+    console.log('Appended message:', sender, message);
 }
