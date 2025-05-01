@@ -20,6 +20,7 @@ const db = firebase.firestore();
 
 let stars = [];
 let fadeAlpha = 0;
+let burstTimer = 0; // Tracks burst duration
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -40,6 +41,7 @@ const centers = {
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
+    console.log('Canvas initialized:', windowWidth, windowHeight);
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not authenticated, redirecting to login');
@@ -115,32 +117,54 @@ function draw() {
         rect(0, 0, width, height);
     }
 
+    // Fallback star to confirm rendering
+    if (stars.length === 0) {
+        fill(255, 255, 0);
+        noStroke();
+        ellipse(width / 2, height / 2, 10, 10);
+    }
+
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
+    burstTimer = min(burstTimer + 1, 180); // ~3 seconds at 60 FPS
 
     stars.forEach(star => {
+        // Validate position
+        if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y)) {
+            star.pos = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
+            console.log('Fixed invalid position for star:', star.id);
+        }
+        // Clamp to canvas
+        star.pos.x = constrain(star.pos.x, 0, width);
+        star.pos.y = constrain(star.pos.y, 0, height);
+
         let force = createVector(0, 0);
+        // Non-linear deceleration: forceMult = 0.0003 + (0.01 - 0.0003) * exp(-3 * t/180)
+        const t = burstTimer;
+        const forceMult = 0.0003 + (0.01 - 0.0003) * Math.exp(-3 * t / 180);
+        const velLimit = 0.15 + (1 - 0.15) * Math.exp(-3 * t / 180);
+
         if (star.emotion === 'love') {
-            force = p5.Vector.sub(star.target, star.pos).mult(0.002);
+            force = p5.Vector.sub(star.target, star.pos).mult(forceMult * 2);
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.001;
+            star.angle += 0.0005; // Slower rotation
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
-            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
+            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(forceMult);
             const originalTarget = createVector(centers[star.originalEmotion].x * width, centers[star.originalEmotion].y * height);
-            force.add(p5.Vector.sub(originalTarget, star.pos).mult(0.0001));
+            force.add(p5.Vector.sub(originalTarget, star.pos).mult(forceMult * 0.2));
         }
 
         // Attraction and repulsion for same-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion === star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
-                if (d < 20 && d > 0) {
-                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
+                if (d < 30 && d > 0) {
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.015 / d);
                     force.add(repel);
                 } else if (d < 100 && d > 0) {
-                    let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0002 / d);
+                    let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0001 / d);
                     force.add(attract);
                 }
             }
@@ -151,15 +175,15 @@ function draw() {
             if (other !== star && other.emotion !== star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
                 if (d < 80 && d > 0) {
-                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.02 / d);
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
                     force.add(repel);
                 }
             }
         });
 
         star.vel.add(force);
-        star.vel.mult(0.9);
-        star.vel.limit(0.2);
+        star.vel.mult(0.95); // Stronger damping
+        star.vel.limit(velLimit); // Dynamic velocity limit
         star.pos.add(star.vel);
 
         // Draw star
@@ -171,18 +195,17 @@ function draw() {
 
         // Yellow glow for read/unread
         if (!star.read) {
-            // Layered glow for fading effect
-            fill(255, 255, 0, 20); // Outer faint yellow
+            fill(255, 255, 0, 20);
             noStroke();
             ellipse(star.pos.x, star.pos.y, length * 4, length * 4);
-            fill(255, 255, 0, 50); // Inner bright yellow
+            fill(255, 255, 0, 50);
             ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
-            stroke(255, 255, 0, 100); // Bright outline
+            stroke(255, 255, 0, 100);
             strokeWeight(0.5);
             line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
             line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         } else {
-            fill(255, 255, 0, 10); // Dim yellow for read
+            fill(255, 255, 0, 10);
             noStroke();
             ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
             stroke(255, 255, 0, 40);
@@ -191,7 +214,7 @@ function draw() {
             line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         }
 
-        // X-shaped star (drawn after glow to ensure visibility)
+        // X-shaped star
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         strokeWeight(thickness);
         line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
