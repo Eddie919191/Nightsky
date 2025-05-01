@@ -162,20 +162,22 @@ async function getChatHistory(userId, type) {
 
 function showBreakthroughModal(summary, type, userId) {
     console.log('Showing breakthrough modal');
+    const emotion = summary.emotion || 'grief'; // Fallback to grief if no emotion
+    const text = summary.summary || summary; // Handle string or object
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
             <h2>A Moment of Insight</h2>
             <p>We noticed a special moment in your reflection:</p>
-            <textarea id="breakthrough-text">${summary}</textarea>
+            <textarea id="breakthrough-text">${text}</textarea>
             <select id="breakthrough-emotion">
-                <option value="grief">Grief</option>
-                <option value="love">Love</option>
-                <option value="wonder">Wonder</option>
-                <option value="hope">Hope</option>
-                <option value="anger">Anger</option>
-                <option value="trust">Trust</option>
+                <option value="grief" ${emotion === 'grief' ? 'selected' : ''}>Grief</option>
+                <option value="love" ${emotion === 'love' ? 'selected' : ''}>Love</option>
+                <option value="wonder" ${emotion === 'wonder' ? 'selected' : ''}>Wonder</option>
+                <option value="hope" ${emotion === 'hope' ? 'selected' : ''}>Hope</option>
+                <option value="anger" ${emotion === 'anger' ? 'selected' : ''}>Anger</option>
+                <option value="trust" ${emotion === 'trust' ? 'selected' : ''}>Trust</option>
             </select>
             <input id="breakthrough-name" type="text" placeholder="Your name (or Anonymous)">
             <button onclick="saveBreakthrough('${type}', '${userId}')">Share Star</button>
