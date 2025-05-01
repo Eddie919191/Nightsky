@@ -210,14 +210,14 @@ body.agapeus-bg {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Modal styles for breakthrough sharing */
+/* Previous styles unchanged, only showing modal section */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8); /* Darker, less transparent */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -227,46 +227,44 @@ body.agapeus-bg {
 }
 
 .modal-content {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(5px);
-    padding: 20px;
+    background: #04020B; /* Solid dark background */
+    padding: 30px;
     border-radius: 10px;
-    max-width: 500px;
+    max-width: 600px;
     width: 90%;
     text-align: center;
     color: #e0e0e0;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 15px rgba(212, 160, 23, 0.3);
+    border: 1px solid rgba(212, 160, 23, 0.5);
 }
 
 .eden-bg .modal-content {
     font-family: 'Lora', serif;
-    border: 1px solid rgba(212, 160, 23, 0.3);
 }
 
 .agapeus-bg .modal-content {
     font-family: 'Montserrat', sans-serif;
-    border: 1px solid rgba(212, 160, 23, 0.3);
 }
 
 .modal-content h2 {
-    font-size: 1.5em;
-    margin-bottom: 10px;
+    font-size: 1.8em;
+    margin-bottom: 15px;
     color: #d4a017;
 }
 
 .modal-content p {
-    font-size: 1em;
-    margin-bottom: 15px;
+    font-size: 1.1em;
+    margin-bottom: 20px;
 }
 
 .modal-content textarea {
     width: 100%;
-    height: 100px;
-    padding: 10px;
-    margin: 10px 0;
+    height: 120px;
+    padding: 12px;
+    margin: 15px 0;
     border: 1px solid #333;
     border-radius: 5px;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05);
     color: #e0e0e0;
     font-family: inherit;
     resize: none;
@@ -279,11 +277,11 @@ body.agapeus-bg {
 
 .modal-content select, .modal-content input {
     width: 100%;
-    padding: 10px;
-    margin: 10px 0;
+    padding: 12px;
+    margin: 15px 0;
     border: 1px solid #333;
     border-radius: 5px;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.05);
     color: #e0e0e0;
     font-family: inherit;
 }
@@ -294,8 +292,8 @@ body.agapeus-bg {
 }
 
 .modal-content button {
-    padding: 10px 20px;
-    margin: 10px 5px;
+    padding: 12px 24px;
+    margin: 10px 10px;
     border: none;
     border-radius: 5px;
     background: #d4a017;
@@ -331,5 +329,6 @@ body.agapeus-bg {
     }
     .modal-content {
         width: 95%;
+        padding: 20px;
     }
 }
