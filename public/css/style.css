@@ -91,7 +91,7 @@ body.portal-bg::before {
 
 /* Portal Images */
 .portal img {
-    width: 200px; /* Scales 512x1024px to ~200x400px */
+    width: 200px; /* Scales 256x512px to ~200x400px */
     height: auto;
     border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -105,7 +105,7 @@ body.portal-bg::before {
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 400px; /* Covers ~bottom half of 400px-tall portals */
+    height: 200px; /* Covers ~bottom half of 400px-tall portals */
     background: linear-gradient(to top, #0A0A23 0%, transparent 70%);
     pointer-events: none;
     z-index: 1002;
@@ -510,11 +510,11 @@ body.agapeus-bg {
     }
 
     .portal img {
-        width: 150px; /* Scales 512x1024px to ~150x300px */
+        width: 150px; /* Scales 256x512px to ~150x300px */
     }
 
     .portals::after {
-        height: 300px; /* Covers ~bottom half of 300px-tall portals */
+        height: 150px; /* Covers ~bottom half of 300px-tall portals */
     }
 
     .chat-container {
