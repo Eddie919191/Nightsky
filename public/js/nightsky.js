@@ -9,7 +9,13 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+} catch (error) {
+    console.error('Firebase initialization failed:', error);
+}
+
 const db = firebase.firestore();
 
 let stars = [];
@@ -27,6 +33,7 @@ function setup() {
     createCanvas(windowWidth, windowHeight);
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
+            console.log('User not authenticated, redirecting to login');
             window.location.href = '/public/login.html';
             return;
         }
@@ -36,6 +43,7 @@ function setup() {
 
 async function loadStars() {
     try {
+        console.log('Loading shared moments from Firestore');
         const snapshot = await db.collection('sharedMoments').get();
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
@@ -53,6 +61,7 @@ async function loadStars() {
         console.log('Stars loaded:', stars.length);
     } catch (error) {
         console.error('Error loading stars:', error);
+        stars = []; // Ensure stars is defined even on error
     }
 }
 
@@ -94,8 +103,10 @@ function mousePressed() {
 
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
-    stars.forEach(star => {
-        star.pos.set(star.pos.x * width / 100, star.pos.y * height / 100);
-        star.target.set(centers[star.emotion].x * width, centers[star.emotion].y * height);
-    });
+    if (stars.length > 0) {
+        stars.forEach(star => {
+            star.pos.set(star.pos.x * width / 100, star.pos.y * height / 100);
+            star.target.set(centers[star.emotion].x * width, centers[star.emotion].y * height);
+        });
+    }
 }
