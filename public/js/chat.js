@@ -161,26 +161,25 @@ async function getChatHistory(userId, type) {
 }
 
 function showBreakthroughModal(summary, type, userId) {
+    console.log('Showing breakthrough modal');
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
-            <h2>A Star is Born</h2>
-            <p>We sensed a moment of insight. Would you like to share it as a star in the Nightsky?</p>
+            <h2>A Moment of Insight</h2>
+            <p>We noticed a special moment in your reflection:</p>
             <textarea id="breakthrough-text">${summary}</textarea>
-            <label>Emotion:</label>
             <select id="breakthrough-emotion">
-                <option value="sadness">Sadness</option>
-                <option value="joy">Joy</option>
-                <option value="awe">Awe</option>
-                <option value="peace">Peace</option>
+                <option value="grief">Grief</option>
                 <option value="love">Love</option>
-                <option value="fear">Fear</option>
+                <option value="wonder">Wonder</option>
+                <option value="hope">Hope</option>
+                <option value="anger">Anger</option>
+                <option value="trust">Trust</option>
             </select>
-            <label>Name (optional):</label>
-            <input type="text" id="breakthrough-name" placeholder="Anonymous">
+            <input id="breakthrough-name" type="text" placeholder="Your name (or Anonymous)">
             <button onclick="saveBreakthrough('${type}', '${userId}')">Share Star</button>
-            <button onclick="this.parentElement.parentElement.remove()">Cancel</button>
+            <button onclick="this.closest('.modal').remove()">Cancel</button>
         </div>
     `;
     document.body.appendChild(modal);
