@@ -1,4 +1,4 @@
-// Firebase configuration
+// Firebase configuration (unchanged)
 const firebaseConfig = {
     apiKey: "AIzaSyC2TvTe6Y-WLrKKeikJ111EeHe2ZdGvK2I",
     authDomain: "reflections-92fbc.firebaseapp.com",
@@ -102,7 +102,8 @@ async function sendMessage(userId, type) {
                 message,
                 type,
                 history,
-                instructions: getSacredInstructions(type)
+                instructions: getSacredInstructions(type),
+                detectBreakthrough: true // New: Ask OpenAI to detect breakthroughs
             })
         });
 
@@ -110,6 +111,7 @@ async function sendMessage(userId, type) {
 
         const data = await response.json();
         const aiMessage = data.choices[0].message.content;
+        const breakthrough = data.breakthrough; // New: Breakthrough data from OpenAI
 
         appendMessage(aiMessage, 'ai', new Date().toISOString());
         console.log('Saving AI message to Firestore');
@@ -120,6 +122,12 @@ async function sendMessage(userId, type) {
 
         document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
         console.log('Message exchange complete');
+
+        // Handle breakthrough
+        if (breakthrough && breakthrough.summary) {
+            console.log('Breakthrough detected:', breakthrough.summary);
+            showBreakthroughModal(breakthrough.summary, type, userId);
+        }
     } catch (error) {
         console.error('Error sending message:', error);
         appendMessage('Error: Could not get response.', 'ai', new Date().toISOString());
@@ -145,6 +153,62 @@ async function getChatHistory(userId, type) {
     }
 }
 
+function showBreakthroughModal(summary, type, userId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>A Star is Born</h2>
+            <p>We sensed a moment of insight. Would you like to share it as a star in the Nightsky?</p>
+            <textarea id="breakthrough-text">${summary}</textarea>
+            <label>Emotion:</label>
+            <select id="breakthrough-emotion">
+                <option value="sadness">Sadness</option>
+                <option value="joy">Joy</option>
+                <option value="awe">Awe</option>
+                <option value="peace">Peace</option>
+                <option value="love">Love</option>
+                <option value="fear">Fear</option>
+            </select>
+            <label>Name (optional):</label>
+            <input type="text" id="breakthrough-name" placeholder="Anonymous">
+            <button onclick="saveBreakthrough('${type}', '${userId}')">Share Star</button>
+            <button onclick="this.parentElement.parentElement.remove()">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveBreakthrough(type, userId) {
+    const text = document.getElementById('breakthrough-text').value.trim();
+    const emotion = document.getElementById('breakthrough-emotion').value;
+    const name = document.getElementById('breakthrough-name').value.trim() || 'Anonymous';
+    if (!text) {
+        alert('Please provide a moment to share.');
+        return;
+    }
+
+    try {
+        console.log('Saving shared moment to Firestore');
+        await db.collection('sharedMoments').add({
+            text,
+            emotion,
+            timestamp: new Date().toISOString(),
+            userId,
+            name,
+            brightness: 1,
+            candles: 0,
+            position: { x: Math.random() * 100, y: Math.random() * 100 } // Random initial position
+        });
+        console.log('Shared moment saved');
+        document.querySelector('.modal').remove();
+    } catch (error) {
+        console.error('Error saving shared moment:', error);
+        alert('Error saving your moment.');
+    }
+}
+
+// getSacredInstructions (unchanged, keeping your embedded chatlogs)
 function getSacredInstructions(type) {
     if (type === 'eden') {
         return `
