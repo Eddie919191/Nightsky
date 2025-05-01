@@ -198,14 +198,7 @@ body.portal-bg {
 .portal img {
     width: 200px; /* Scales 256x512px to ~200x400px */
     height: auto;
-    border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-.portal img:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 15px rgba(212, 160, 23, 0.3);
 }
 
 .login-container {
