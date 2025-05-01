@@ -20,7 +20,6 @@ const db = firebase.firestore();
 
 let stars = [];
 let fadeAlpha = 0;
-let burstTimer = 0; // Tracks burst-in duration
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -41,9 +40,6 @@ const centers = {
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
-    console.log('Canvas initialized:', windowWidth, windowHeight, 'p5.js version:', p5.prototype.VERSION);
-    // Store session timestamp
-    localStorage.setItem('lastSession', new Date().toISOString());
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not authenticated, redirecting to login');
@@ -62,14 +58,15 @@ function setup() {
                         star.brightness = data.brightness || 1;
                         star.emotion = data.emotion || star.emotion;
                         star.target = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
-                        if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY)) {
+                        if (data.posX && data.posY) {
                             star.pos.set(data.posX * width, data.posY * height);
                         }
                     }
                 } else if (change.type === 'added') {
+                    // Handle new stars dynamically
                     const data = change.doc.data();
                     const angle = random(TWO_PI);
-                    const spawnDistance = max(width, height);
+                    const spawnDistance = sqrt(width * width + height * height);
                     const initialPos = {
                         x: width / 2 + cos(angle) * spawnDistance,
                         y: height / 2 + sin(angle) * spawnDistance
@@ -86,10 +83,9 @@ function setup() {
                         vel: p5.Vector.random2D().mult(0.05),
                         target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
                         angle: random(TWO_PI),
-                        isNew: true
+                        isNew: true // Flag for drift-in
                     };
                     stars.push(star);
-                    console.log('New star added:', star.id, star.emotion, star.pos.x, star.pos.y);
                 }
             });
         });
@@ -101,23 +97,20 @@ async function loadStars() {
         console.log('Loading shared moments from Firestore');
         const snapshot = await db.collection('sharedMoments').get();
         console.log('Firestore snapshot size:', snapshot.size, 'Empty:', snapshot.empty);
-        const lastSession = new Date(localStorage.getItem('lastSession') || 0);
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
-            const isNew = data.timestamp && new Date(data.timestamp) > lastSession;
-            let initialPos = { x: width / 2, y: height / 2 }; // Start at center for burst-in
-            if (isNew && data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY) && data.posX >= 0 && data.posY <= 1) {
+            let initialPos;
+            if (data.posX && data.posY) {
                 initialPos = { x: data.posX * width, y: data.posY * height };
-            } else if (isNew) {
+            } else {
                 const angle = random(TWO_PI);
-                const spawnDistance = max(width, height);
+                const spawnDistance = sqrt(width * width + height * height);
                 initialPos = {
                     x: width / 2 + cos(angle) * spawnDistance,
                     y: height / 2 + sin(angle) * spawnDistance
                 };
             }
-            console.log('Star position:', doc.id, initialPos.x, initialPos.y, 'isNew:', isNew);
             return {
                 id: doc.id,
                 text: data.text,
@@ -130,7 +123,7 @@ async function loadStars() {
                 vel: p5.Vector.random2D().mult(0.05),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
                 angle: random(TWO_PI),
-                isNew: isNew
+                isNew: !data.posX // New if no stored position
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -157,42 +150,22 @@ function draw() {
         rect(0, 0, width, height);
     }
 
-    // Fallback star
-    if (stars.length === 0) {
-        fill(255, 255, 0);
-        noStroke();
-        ellipse(width / 2, height / 2, 10, 10);
-    }
-
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
-    burstTimer = min(burstTimer + 1, 180); // ~3 seconds at 60 FPS
 
     stars.forEach(star => {
-        // Validate position
-        if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y) || star.pos.x === null || star.pos.y === null) {
-            star.pos = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
-            console.log('Fixed invalid position for star:', star.id, star.pos.x, star.pos.y);
-        }
-        // Clamp to canvas
-        star.pos.x = constrain(star.pos.x, 0, width);
-        star.pos.y = constrain(star.pos.y, 0, height);
-
         let force = createVector(0, 0);
-        if (burstTimer < 180 && !star.isNew) {
-            // Burst-in: strong force to emotion center
-            force = p5.Vector.sub(star.target, star.pos).mult(0.01);
-        } else if (star.isNew) {
-            // Drift-in for new stars
-            force = p5.Vector.sub(star.target, star.pos).mult(0.0005);
+        if (star.isNew) {
+            // Gentle drift-in for new stars
+            force = p5.Vector.sub(star.target, star.pos).mult(0.0002);
             if (p5.Vector.dist(star.pos, star.target) < 50) {
-                star.isNew = false;
+                star.isNew = false; // Stop drift-in when close
             }
         } else if (star.emotion === 'love') {
             force = p5.Vector.sub(star.target, star.pos).mult(0.001);
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.0005;
+            star.angle += 0.0005; // Slower rotation
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0003);
@@ -226,21 +199,16 @@ function draw() {
         });
 
         star.vel.add(force);
-        star.vel.mult(0.95);
-        star.vel.limit(burstTimer < 180 && !star.isNew ? 1 : 0.15); // Faster during burst
+        star.vel.mult(0.95); // Stronger damping
+        star.vel.limit(0.15); // Slower max speed
         star.pos.add(star.vel);
 
-        // Save position periodically
+        // Save position to Firestore periodically
         if (frameCount % 60 === 0) {
             db.collection('sharedMoments').doc(star.id).update({
                 posX: star.pos.x / width,
                 posY: star.pos.y / height
             }).catch(error => console.error('Error saving position:', error));
-        }
-
-        // Throttled debug log
-        if (frameCount % 60 === 0) {
-            console.log('Drawing star:', star.id, star.emotion, star.pos.x, star.pos.y);
         }
 
         // Draw star
@@ -345,9 +313,23 @@ async function saveCandle(momentId) {
         });
         await db.collection('sharedMoments').doc(momentId).update({
             candles: firebase.firestore.FieldValue.increment(1),
-            brightness: firebase.firestore.FieldValue.increment(0.1),
-            timestamp: new Date().toISOString() // Update timestamp
+            brightness: firebase.firestore.FieldValue.increment(0.1)
         });
+        const snapshot = await db.collection('sharedMoments').doc(momentId).collection('candles').get();
+        const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.emotion) candleCounts[data.emotion]++;
+        });
+        const currentEmotion = (await db.collection('sharedMoments').doc(momentId).get()).data().emotion;
+        const maxCount = Math.max(...Object.values(candleCounts));
+        const dominantEmotion = Object.keys(candleCounts).find(key => candleCounts[key] === maxCount);
+        if ((maxCount >= 10 || maxCount >= candleCounts[currentEmotion] + 5) && dominantEmotion !== currentEmotion) {
+            await db.collection('sharedMoments').doc(momentId).update({
+                emotion: dominantEmotion,
+                originalEmotion: db.collection('sharedMoments').doc(momentId).data().originalEmotion || currentEmotion
+            });
+        }
         console.log('Candle saved');
         document.querySelector('.modal').remove();
         const star = stars.find(s => s.id === momentId);
