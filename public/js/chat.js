@@ -126,14 +126,8 @@ async function sendMessage(userId, type) {
 
         // Handle breakthrough
         if (breakthrough && breakthrough.summary) {
-            console.log('Breakthrough detected:', breakthrough.summary);
-            showBreakthroughModal(breakthrough.summary, type, userId);
-        } else {
-            // Force modal for testing if message contains "breakthrough" or emotional shift
-            if (message.toLowerCase().includes('breakthrough') || message.toLowerCase().includes('let go') || message.toLowerCase().includes('strong again')) {
-                console.log('Forcing breakthrough modal for testing');
-                showBreakthroughModal('You found peace or strength in this moment.', type, userId);
-            }
+            console.log('Breakthrough detected:', breakthrough.summary, 'Emotion:', breakthrough.emotion);
+            showBreakthroughModal(breakthrough, type, userId);
         }
     } catch (error) {
         console.error('Error sending message:', error);
@@ -160,17 +154,17 @@ async function getChatHistory(userId, type) {
     }
 }
 
-function showBreakthroughModal(summary, type, userId) {
-    console.log('Showing breakthrough modal');
-    const emotion = summary.emotion || 'grief'; // Fallback to grief if no emotion
-    const text = summary.summary || summary; // Handle string or object
+function showBreakthroughModal(breakthrough, type, userId) {
+    console.log('Showing breakthrough modal with:', breakthrough);
+    const summary = breakthrough.summary || 'A moment of insight occurred.';
+    const emotion = breakthrough.emotion || 'grief'; // Fallback
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
         <div class="modal-content">
             <h2>A Moment of Insight</h2>
             <p>We noticed a special moment in your reflection:</p>
-            <textarea id="breakthrough-text">${text}</textarea>
+            <textarea id="breakthrough-text">${summary}</textarea>
             <select id="breakthrough-emotion">
                 <option value="grief" ${emotion === 'grief' ? 'selected' : ''}>Grief</option>
                 <option value="love" ${emotion === 'love' ? 'selected' : ''}>Love</option>
