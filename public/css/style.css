@@ -395,6 +395,26 @@ body.agapeus-bg {
     font-size: 0.9em;
     margin-left: 10px;
 }
+.chatbox {
+    position: absolute;
+    background: rgba(4, 2, 11, 0.9); /* Matches Nightsky's dark, dreamy aesthetic */
+    border: 1px solid rgba(212, 160, 23, 0.5); /* Gold border like modals */
+    border-radius: 5px;
+    padding: 10px;
+    max-width: 200px;
+    text-align: center;
+    color: #e0e0e0;
+    font-family: 'Lora', serif;
+    font-size: 0.9em;
+    box-shadow: 0 2px 8px rgba(212, 160, 23, 0.3);
+    z-index: 999; /* Below modals (1000) but above canvas */
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.chatbox p {
+    margin: 0;
+}
 @media (max-width: 600px) {
     .portals {
         flex-direction: column;
