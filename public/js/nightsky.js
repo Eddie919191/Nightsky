@@ -20,6 +20,7 @@ const db = firebase.firestore();
 
 let stars = [];
 let fadeAlpha = 0;
+let burstTimer = 0; // Tracks burst-in duration
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -41,6 +42,8 @@ const centers = {
 function setup() {
     createCanvas(windowWidth, windowHeight);
     console.log('Canvas initialized:', windowWidth, windowHeight, 'p5.js version:', p5.prototype.VERSION);
+    // Store session timestamp
+    localStorage.setItem('lastSession', new Date().toISOString());
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not authenticated, redirecting to login');
@@ -66,7 +69,7 @@ function setup() {
                 } else if (change.type === 'added') {
                     const data = change.doc.data();
                     const angle = random(TWO_PI);
-                    const spawnDistance = max(width, height); // Closer spawn
+                    const spawnDistance = max(width, height);
                     const initialPos = {
                         x: width / 2 + cos(angle) * spawnDistance,
                         y: height / 2 + sin(angle) * spawnDistance
@@ -98,24 +101,23 @@ async function loadStars() {
         console.log('Loading shared moments from Firestore');
         const snapshot = await db.collection('sharedMoments').get();
         console.log('Firestore snapshot size:', snapshot.size, 'Empty:', snapshot.empty);
+        const lastSession = new Date(localStorage.getItem('lastSession') || 0);
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
-            let initialPos;
-            if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY) && data.posX >= 0 && data.posX <= 1 && data.posY >= 0 && data.posY <= 1) {
+            const isNew = data.timestamp && new Date(data.timestamp) > lastSession;
+            let initialPos = { x: width / 2, y: height / 2 }; // Start at center for burst-in
+            if (isNew && data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY) && data.posX >= 0 && data.posY <= 1) {
                 initialPos = { x: data.posX * width, y: data.posY * height };
-            } else {
+            } else if (isNew) {
+                const angle = random(TWO_PI);
+                const spawnDistance = max(width, height);
                 initialPos = {
-                    x: centers[data.emotion].x * width,
-                    y: centers[data.emotion].y * height
+                    x: width / 2 + cos(angle) * spawnDistance,
+                    y: height / 2 + sin(angle) * spawnDistance
                 };
-                // Reset invalid positions in Firestore
-                db.collection('sharedMoments').doc(doc.id).update({
-                    posX: centers[data.emotion].x,
-                    posY: centers[data.emotion].y
-                }).catch(error => console.error('Error resetting position:', error));
             }
-            console.log('Star position:', doc.id, initialPos.x, initialPos.y);
+            console.log('Star position:', doc.id, initialPos.x, initialPos.y, 'isNew:', isNew);
             return {
                 id: doc.id,
                 text: data.text,
@@ -128,7 +130,7 @@ async function loadStars() {
                 vel: p5.Vector.random2D().mult(0.05),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
                 angle: random(TWO_PI),
-                isNew: !data.posX
+                isNew: isNew
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -155,7 +157,7 @@ function draw() {
         rect(0, 0, width, height);
     }
 
-    // Fallback star to confirm rendering
+    // Fallback star
     if (stars.length === 0) {
         fill(255, 255, 0);
         noStroke();
@@ -163,6 +165,7 @@ function draw() {
     }
 
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
+    burstTimer = min(burstTimer + 1, 180); // ~3 seconds at 60 FPS
 
     stars.forEach(star => {
         // Validate position
@@ -175,8 +178,12 @@ function draw() {
         star.pos.y = constrain(star.pos.y, 0, height);
 
         let force = createVector(0, 0);
-        if (star.isNew) {
-            force = p5.Vector.sub(star.target, star.pos).mult(0.001); // Faster drift-in
+        if (burstTimer < 180 && !star.isNew) {
+            // Burst-in: strong force to emotion center
+            force = p5.Vector.sub(star.target, star.pos).mult(0.01);
+        } else if (star.isNew) {
+            // Drift-in for new stars
+            force = p5.Vector.sub(star.target, star.pos).mult(0.0005);
             if (p5.Vector.dist(star.pos, star.target) < 50) {
                 star.isNew = false;
             }
@@ -220,7 +227,7 @@ function draw() {
 
         star.vel.add(force);
         star.vel.mult(0.95);
-        star.vel.limit(0.15);
+        star.vel.limit(burstTimer < 180 && !star.isNew ? 1 : 0.15); // Faster during burst
         star.pos.add(star.vel);
 
         // Save position periodically
@@ -338,23 +345,9 @@ async function saveCandle(momentId) {
         });
         await db.collection('sharedMoments').doc(momentId).update({
             candles: firebase.firestore.FieldValue.increment(1),
-            brightness: firebase.firestore.FieldValue.increment(0.1)
+            brightness: firebase.firestore.FieldValue.increment(0.1),
+            timestamp: new Date().toISOString() // Update timestamp
         });
-        const snapshot = await db.collection('sharedMoments').doc(momentId).collection('candles').get();
-        const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.emotion) candleCounts[data.emotion]++;
-        });
-        const currentEmotion = (await db.collection('sharedMoments').doc(momentId).get()).data().emotion;
-        const maxCount = Math.max(...Object.values(candleCounts));
-        const dominantEmotion = Object.keys(candleCounts).find(key => candleCounts[key] === maxCount);
-        if ((maxCount >= 10 || maxCount >= candleCounts[currentEmotion] + 5) && dominantEmotion !== currentEmotion) {
-            await db.collection('sharedMoments').doc(momentId).update({
-                emotion: dominantEmotion,
-                originalEmotion: db.collection('sharedMoments').doc(momentId).data().originalEmotion || currentEmotion
-            });
-        }
         console.log('Candle saved');
         document.querySelector('.modal').remove();
         const star = stars.find(s => s.id === momentId);
