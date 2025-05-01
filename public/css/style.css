@@ -420,6 +420,8 @@ body.agapeus-bg {
 body.portal-bg {
     background: url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
     background-size: cover;
+    transform: rotate(180deg); /* Rotate image 180 degrees */
+    transform-origin: center center; /* Ensure rotation is centered */
     animation: none; /* Remove subtleDrift animation */
 }
 
@@ -434,23 +436,44 @@ body.portal-bg {
     align-items: center;
 }
 
-/* Adjust Portals to Sit on Horizon */
+/* Portals Container (Fixed to Bottom) */
 .portals {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end; /* Align portals to bottom */
+    gap: 50px;
+    padding: 20px;
+    width: 100%;
+    max-width: 800px;
     opacity: 0;
     animation: fadeIn 1s ease forwards 0.5s;
+    z-index: 1001; /* Above stars and background */
 }
 
-/* Ensure Portals are Centered on Horizon */
+
+/* Portal Images */
 .portal img {
     width: 200px;
     height: auto;
     border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    position: relative;
-    top: -100px; /* Half the portal height to "stand" on the horizon (200px / 2) */
 }
-
+.portals::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 150px; /* Covers portal bases */
+    background: linear-gradient(to top, #0A0A23, transparent); /* Black to transparent */
+    pointer-events: none; /* Allows clicks on portals */
+    z-index: 1002; /* Above portals but below buttons */
+}
 .portal img:hover {
     transform: scale(1.05);
     box-shadow: 0 6px 15px rgba(212, 160, 23, 0.3);
@@ -458,12 +481,14 @@ body.portal-bg {
 
 /* Stars Container */
 .stars {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     justify-content: center;
     gap: 30px;
-    margin-top: 20px;
-    position: relative;
-    top: 0; /* Position stars just below the horizon */
+    z-index: 1000; /* Above background, below portals if needed */
 }
 
 /* Individual Stars (Glow Blossoms) */
@@ -551,9 +576,9 @@ body.portal-bg {
         top: -75px; /* Adjust for smaller portal size (150px / 2) */
     }
 
-    .stars {
+      .stars {
         gap: 20px;
-        margin-top: 10px;
+        top: 10px;
     }
 
     .star {
@@ -568,5 +593,18 @@ body.portal-bg {
     .star-4 { transform: translate(0, 0); }
     .star-5 { transform: translate(30px, 5px); }
     .star-6 { transform: translate(60px, 15px); }
-}
+
+    .portals {
+        flex-direction: column;
+        gap: 20px;
+        bottom: 10px;
+    }
+
+    .portal img {
+        width: 150px;
+    }
+
+    .portals::after {
+        height: 100px; /* Shorter gradient on mobile */
+    }
 }
