@@ -235,6 +235,8 @@ body.agapeus-bg {
     color: #e0e0e0;
     box-shadow: 0 4px 15px rgba(212, 160, 23, 0.3);
     border: 1px solid rgba(212, 160, 23, 0.5);
+    position: relative;
+    z-index: 1001;
 }
 
 .eden-bg .modal-content {
@@ -303,6 +305,8 @@ body.agapeus-bg {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    z-index: 1002;
 }
 
 .modal-content button:hover {
