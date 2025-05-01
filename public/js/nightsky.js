@@ -36,7 +36,6 @@ const centers = {
     anger: { x: 0.5, y: 0.8 },
     trust: { x: 0.5, y: 0.5 }
 };
-const loveCenter = { x: 0.2 * windowWidth, y: 0.2 * windowHeight }; // Love center for orbiting
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
@@ -80,18 +79,17 @@ async function loadStars() {
 
 function draw() {
     background(10, 10, 35);
-    loveCenter.x = 0.2 * width;
-    loveCenter.y = 0.2 * height;
+    const loveCenter = { x: 0.2 * width, y: 0.2 * height }; // Compute dynamically
 
     stars.forEach(star => {
         let force;
         if (star.emotion === 'love') {
             // Love stars move to their center
-            force = p5.Vector.sub(star.target, star.pos).mult(0.002); // Stronger attraction
+            force = p5.Vector.sub(star.target, star.pos).mult(0.002);
         } else {
             // Non-love stars orbit love center counterclockwise
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
-            const orbitRadius = constrain(distance, 50, 200); // Keep orbit reasonable
+            const orbitRadius = constrain(distance, 50, 200);
             star.angle += 0.005; // Slow counterclockwise rotation
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
@@ -113,14 +111,14 @@ function draw() {
 
         star.vel.add(force);
         star.vel.mult(0.95); // Damping for stability
-        star.vel.limit(0.5); // Lower speed limit
+        star.vel.limit(0.5);
         star.pos.add(star.vel);
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
         fill(r, g, b, 200 + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         noStroke();
-        const size = 8 + star.brightness * 3; // Larger stars
+        const size = 8 + star.brightness * 3;
         ellipse(star.pos.x, star.pos.y, size, size);
     });
 }
