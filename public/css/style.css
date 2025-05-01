@@ -348,7 +348,7 @@ body.agapeus-bg {
     background: #e0b030;
 }
 
-.user-icon {
+.messages-icon {
     position: fixed;
     bottom: 20px;
     left: 50%;
@@ -360,11 +360,11 @@ body.agapeus-bg {
     color: #04020B;
     cursor: pointer;
     transition: background 0.3s ease;
-    font-size: 1.5em;
+    font-size: 1.3em; /* Slightly smaller for the letter icon */
     z-index: 1000;
 }
 
-.user-icon:hover {
+.messages-icon:hover {
     background: #e0b030;
 }
 
