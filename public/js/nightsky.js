@@ -21,7 +21,8 @@ const db = firebase.firestore();
 let stars = [];
 let fadeAlpha = 0;
 let burstTimer = 0;
-let initialSnapTimer = 0; // New timer for initial snap
+let initialSnapTimer = 0;
+let chatboxTimer = 0; // New timer for chatbox
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -172,7 +173,13 @@ function draw() {
 
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
     burstTimer = min(burstTimer + 1, 180);
-    initialSnapTimer = min(initialSnapTimer + 1, 360); // Timer for snap and deceleration
+    initialSnapTimer = min(initialSnapTimer + 1, 360);
+    chatboxTimer += 1; // Increment chatbox timer
+
+    // Check for chatbox after 30 seconds (1800 frames at 60 FPS)
+    if (chatboxTimer === 1800 && !document.querySelector('.chatbox')) {
+        showRandomChatbox();
+    }
 
     stars.forEach(star => {
         if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y)) {
@@ -185,16 +192,14 @@ function draw() {
         let force = createVector(0, 0);
         let forceMult, velLimit;
 
-        // Initial snap (first 2 seconds, 120 frames)
         if (initialSnapTimer < 120) {
-            forceMult = 0.05; // High force for quick snap
-            velLimit = 2; // Fast movement
+            forceMult = 0.05;
+            velLimit = 2;
         } else {
-            // Exponential deceleration after snap
-            const t = initialSnapTimer - 120; // Time since snap ended
-            const decay = Math.exp(-5 * t / 360); // Fast decay over ~6 seconds
-            forceMult = 0.0001 + (0.002 - 0.0001) * decay; // Decays to slow force
-            velLimit = 0.05 + (0.2 - 0.05) * decay; // Decays to slow velocity
+            const t = initialSnapTimer - 120;
+            const decay = Math.exp(-5 * t / 360);
+            forceMult = 0.0001 + (0.002 - 0.0001) * decay;
+            velLimit = 0.05 + (0.2 - 0.05) * decay;
         }
 
         if (star.emotion === 'love') {
@@ -234,7 +239,7 @@ function draw() {
         });
 
         star.vel.add(force);
-        star.vel.mult(0.98); // Increased drag for smoother motion
+        star.vel.mult(0.98);
         star.vel.limit(velLimit);
         star.pos.add(star.vel);
 
@@ -242,16 +247,14 @@ function draw() {
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const baseSize = 4 + 4 * (1 - Math.exp(-0.01 * star.candles)) * pulse; // Slower size growth
-        const haloSize = baseSize * (star.read ? 3 : 4); // Halo larger for unread
-        const tendrilLength = baseSize * 1.5; // Tendrils extend beyond core
+        const baseSize = 4 + 4 * (1 - Math.exp(-0.01 * star.candles)) * pulse;
+        const haloSize = baseSize * (star.read ? 3 : 4);
+        const tendrilLength = baseSize * 1.5;
 
-        // Draw emotion-colored halo
         noStroke();
-        fill(r, g, b, alpha * 0.2 + 20 * sin(frameCount * 0.02)); // Pulsing halo
+        fill(r, g, b, alpha * 0.2 + 20 * sin(frameCount * 0.02));
         ellipse(star.pos.x, star.pos.y, haloSize, haloSize);
 
-        // Draw unread outer glow (if unread)
         if (!star.read) {
             fill(255, 255, 0, 20);
             ellipse(star.pos.x, star.pos.y, haloSize * 1.5, haloSize * 1.5);
@@ -259,23 +262,20 @@ function draw() {
             ellipse(star.pos.x, star.pos.y, haloSize * 2, haloSize * 2);
         }
 
-        // Draw central core
-        fill(255, 255, 200, alpha); // Yellow-white core
+        fill(255, 255, 200, alpha);
         ellipse(star.pos.x, star.pos.y, baseSize * 0.5, baseSize * 0.5);
 
-        // Draw tendrils (6 petals)
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
-        strokeWeight(baseSize * 0.1); // Thin tendrils
+        strokeWeight(baseSize * 0.1);
         const numTendrils = 6;
         for (let i = 0; i < numTendrils; i++) {
-            const angle = (TWO_PI / numTendrils) * i + frameCount * 0.005; // Slight rotation
+            const angle = (TWO_PI / numTendrils) * i + frameCount * 0.005;
             const x1 = star.pos.x;
             const y1 = star.pos.y;
             const x2 = x1 + cos(angle) * tendrilLength;
             const y2 = y1 + sin(angle) * tendrilLength;
-            const cx = x1 + cos(angle) * tendrilLength * 0.5; // Control point for curve
+            const cx = x1 + cos(angle) * tendrilLength * 0.5;
             const cy = y1 + sin(angle) * tendrilLength * 0.5;
-            // Quadratic bezier for curved tendrils
             noFill();
             beginShape();
             vertex(x1, y1);
@@ -287,9 +287,50 @@ function draw() {
     });
 }
 
+function showRandomChatbox() {
+    // Find stars with changed emotions
+    const eligibleStars = stars.filter(star => star.emotion !== star.originalEmotion);
+    if (eligibleStars.length === 0) {
+        console.log('No stars with changed emotions for chatbox');
+        return;
+    }
+
+    // Pick a random star
+    const star = eligibleStars[Math.floor(Math.random() * eligibleStars.length)];
+    const [r, g, b] = colors[star.emotion];
+
+    // Generate message
+    const messages = [
+        `From ${star.originalEmotion} to ${star.emotion}, this moment shines brighter through shared hearts!`,
+        `This ${star.originalEmotion} moment transformed into ${star.emotion} with the warmth of many candles!`,
+        `Community love turned this ${star.originalEmotion} into a beacon of ${star.emotion}!`,
+        `Candles reshaped this ${star.originalEmotion} moment into one of ${star.emotion}!`
+    ];
+    const message = messages[Math.floor(Math.random() * messages.length)];
+
+    // Create chatbox
+    const chatbox = document.createElement('div');
+    chatbox.className = 'chatbox';
+    chatbox.innerHTML = `<p style="color: rgb(${r}, ${g}, ${b})">${message}</p>`;
+    
+    // Position near star (adjust to avoid screen edges)
+    const x = Math.min(Math.max(star.pos.x, 50), windowWidth - 150); // Keep within bounds
+    const y = Math.min(Math.max(star.pos.y, 50), windowHeight - 100);
+    chatbox.style.left = `${x}px`;
+    chatbox.style.top = `${y}px`;
+
+    document.body.appendChild(chatbox);
+
+    // Remove after 5 seconds
+    setTimeout(() => {
+        chatbox.style.opacity = '0';
+        setTimeout(() => chatbox.remove(), 500); // Wait for fade-out
+    }, 5000);
+}
+
 function mousePressed() {
     stars.forEach(star => {
-        const size = 4 + 4 * (1 - Math.exp(-0.01 * star.candles)); // Updated for click detection
+        const size = 4 + 4 * (1 - Math.exp(-0.01 * star.candles));
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
             showCandleModal(star, false);
@@ -379,7 +420,6 @@ async function showUserCandlesModal() {
     document.body.appendChild(modal);
 
     try {
-        // Fetch all shared moments to check read status
         const momentsSnapshot = await db.collection('sharedMoments').get();
         const moments = momentsSnapshot.docs.map(doc => ({
             id: doc.id,
@@ -388,7 +428,6 @@ async function showUserCandlesModal() {
             emotion: doc.data().emotion || 'love'
         }));
 
-        // Fetch user's candles across all shared moments
         const userCandles = [];
         for (const moment of moments) {
             const candlesSnapshot = await db.collection('sharedMoments').doc(moment.id).collection('candles')
@@ -407,10 +446,8 @@ async function showUserCandlesModal() {
             });
         }
 
-        // Sort by timestamp (newest first)
         userCandles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-        // Display candles/messages
         const candlesList = document.getElementById('candles-list');
         if (userCandles.length === 0) {
             candlesList.innerHTML = '<p>No candles or messages yet.</p>';
