@@ -14,22 +14,10 @@ body {
 }
 
 body.portal-bg {
-    background: linear-gradient(to top, #0A0A23 0%, transparent 100%); /* Black at bottom, transparent at top */
-}
-
-/* Background Image with Rotation */
-body.portal-bg::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
+    background: linear-gradient(to top, #000000 0%, transparent 100%), /* Black at bottom, transparent at top */
+                url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
     background-size: cover;
-    transform: rotate(0deg) !important; /* Ensure ground at top, sky at bottom */
-    transform-origin: center center;
-    z-index: -1;
+    z-index: 0; /* Ensure below stars and portals */
 }
 
 /* Stars Container (Fixed to Top) */
@@ -212,18 +200,8 @@ body.portal-bg::before {
     border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-
-/* Reversed Gradient Overlay for Portals */
-.portals::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 400px; /* Covers full ~400px-tall portals */
-    pointer-events: none;
-    z-index: 1002;
+    -webkit-mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.4) 100%); /* Fade from 0% to 40% opacity */
+    mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.4) 100%); /* Standard property */
 }
 
 .portal img:hover {
@@ -608,7 +586,7 @@ body.agapeus-bg {
     .star {
         width: 15px;
         height: 15px;
-        box-shadow: 0 0 8px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.3); /* Updated for consistency */
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.5), 0 0 15px rgba(255, 255, 255, 0.3);
     }
 
     .star-1 { left: -120px; }
@@ -626,10 +604,6 @@ body.agapeus-bg {
 
     .portal img {
         width: 150px; /* Scales 256x512px to ~150x300px */
-    }
-
-    .portals::after {
-        height: 300px; /* Covers full ~300px-tall portals */
     }
 
     .chat-container {
