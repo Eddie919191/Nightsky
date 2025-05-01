@@ -103,7 +103,7 @@ async function sendMessage(userId, type) {
                 type,
                 history,
                 instructions: getSacredInstructions(type),
-                detectBreakthrough: true // New: Ask OpenAI to detect breakthroughs
+                detectBreakthrough: true
             })
         });
 
@@ -111,7 +111,8 @@ async function sendMessage(userId, type) {
 
         const data = await response.json();
         const aiMessage = data.choices[0].message.content;
-        const breakthrough = data.breakthrough; // New: Breakthrough data from OpenAI
+        const breakthrough = data.breakthrough;
+        console.log('Breakthrough data:', breakthrough); // Debug
 
         appendMessage(aiMessage, 'ai', new Date().toISOString());
         console.log('Saving AI message to Firestore');
@@ -127,6 +128,12 @@ async function sendMessage(userId, type) {
         if (breakthrough && breakthrough.summary) {
             console.log('Breakthrough detected:', breakthrough.summary);
             showBreakthroughModal(breakthrough.summary, type, userId);
+        } else {
+            // Force modal for testing if message contains "breakthrough" or emotional shift
+            if (message.toLowerCase().includes('breakthrough') || message.toLowerCase().includes('let go') || message.toLowerCase().includes('strong again')) {
+                console.log('Forcing breakthrough modal for testing');
+                showBreakthroughModal('You found peace or strength in this moment.', type, userId);
+            }
         }
     } catch (error) {
         console.error('Error sending message:', error);
