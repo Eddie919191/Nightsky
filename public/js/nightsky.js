@@ -63,10 +63,9 @@ function setup() {
                         }
                     }
                 } else if (change.type === 'added') {
-                    // Handle new stars dynamically
                     const data = change.doc.data();
                     const angle = random(TWO_PI);
-                    const spawnDistance = sqrt(width * width + height * height);
+                    const spawnDistance = max(width, height) * 1.2; // Closer spawn
                     const initialPos = {
                         x: width / 2 + cos(angle) * spawnDistance,
                         y: height / 2 + sin(angle) * spawnDistance
@@ -83,9 +82,10 @@ function setup() {
                         vel: p5.Vector.random2D().mult(0.05),
                         target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
                         angle: random(TWO_PI),
-                        isNew: true // Flag for drift-in
+                        isNew: true
                     };
                     stars.push(star);
+                    console.log('New star added:', star.id, star.emotion, star.pos.x, star.pos.y);
                 }
             });
         });
@@ -101,14 +101,13 @@ async function loadStars() {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
             let initialPos;
-            if (data.posX && data.posY) {
+            if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY)) {
                 initialPos = { x: data.posX * width, y: data.posY * height };
             } else {
-                const angle = random(TWO_PI);
-                const spawnDistance = sqrt(width * width + height * height);
+                // Default near emotion center
                 initialPos = {
-                    x: width / 2 + cos(angle) * spawnDistance,
-                    y: height / 2 + sin(angle) * spawnDistance
+                    x: centers[data.emotion].x * width + random(-50, 50),
+                    y: centers[data.emotion].y * height + random(-50, 50)
                 };
             }
             return {
@@ -123,7 +122,7 @@ async function loadStars() {
                 vel: p5.Vector.random2D().mult(0.05),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
                 angle: random(TWO_PI),
-                isNew: !data.posX // New if no stored position
+                isNew: !data.posX
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -153,19 +152,27 @@ function draw() {
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
 
     stars.forEach(star => {
+        // Validate position
+        if (isNaN(star.pos.x) || isNaN(star.pos.y)) {
+            star.pos.set(centers[star.emotion].x * width, centers[star.emotion].y * height);
+            console.log('Fixed NaN position for star:', star.id);
+        }
+        // Clamp to canvas
+        star.pos.x = constrain(star.pos.x, -width, width * 2);
+        star.pos.y = constrain(star.pos.y, -height, height * 2);
+
         let force = createVector(0, 0);
         if (star.isNew) {
-            // Gentle drift-in for new stars
-            force = p5.Vector.sub(star.target, star.pos).mult(0.0002);
+            force = p5.Vector.sub(star.target, star.pos).mult(0.0005); // Faster drift-in
             if (p5.Vector.dist(star.pos, star.target) < 50) {
-                star.isNew = false; // Stop drift-in when close
+                star.isNew = false;
             }
         } else if (star.emotion === 'love') {
             force = p5.Vector.sub(star.target, star.pos).mult(0.001);
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.0005; // Slower rotation
+            star.angle += 0.0005;
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0003);
@@ -199,17 +206,20 @@ function draw() {
         });
 
         star.vel.add(force);
-        star.vel.mult(0.95); // Stronger damping
-        star.vel.limit(0.15); // Slower max speed
+        star.vel.mult(0.95);
+        star.vel.limit(0.15);
         star.pos.add(star.vel);
 
-        // Save position to Firestore periodically
+        // Save position periodically
         if (frameCount % 60 === 0) {
             db.collection('sharedMoments').doc(star.id).update({
                 posX: star.pos.x / width,
                 posY: star.pos.y / height
             }).catch(error => console.error('Error saving position:', error));
         }
+
+        // Debug position
+        console.log('Drawing star:', star.id, star.emotion, star.pos.x, star.pos.y);
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
