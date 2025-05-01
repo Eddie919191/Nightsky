@@ -30,7 +30,7 @@ const colors = {
 };
 const centers = {
     grief: { x: 0.2, y: 0.8 },
-    love: { x: 0.2, y: 0.2 },
+    love: { x: 0.5, y: 0.5 }, // Centered
     wonder: { x: 0.8, y: 0.8 },
     hope: { x: 0.8, y: 0.2 },
     anger: { x: 0.5, y: 0.8 },
@@ -58,7 +58,6 @@ async function loadStars() {
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
-            // Start near Love center for smoother orbiting
             const initialPos = {
                 x: centers.love.x * width + random(-50, 50),
                 y: centers.love.y * height + random(-50, 50)
@@ -67,12 +66,13 @@ async function loadStars() {
                 id: doc.id,
                 text: data.text,
                 emotion: data.emotion,
-                brightness: data.brightness,
-                candles: data.candles,
+                brightness: data.brightness || 1,
+                candles: data.candles || 0,
+                read: data.read || false,
                 pos: createVector(initialPos.x, initialPos.y),
                 vel: p5.Vector.random2D().mult(0.1),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
-                angle: random(TWO_PI) // Random initial angle for orbiting
+                angle: random(TWO_PI)
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -84,18 +84,16 @@ async function loadStars() {
 
 function draw() {
     background(10, 10, 35);
-    const loveCenter = { x: 0.2 * width, y: 0.2 * height };
+    const loveCenter = { x: 0.5 * width, y: 0.5 * height }; // Centered
 
     stars.forEach(star => {
         let force = createVector(0, 0);
         if (star.emotion === 'love') {
-            // Love stars stay fixed at center
             force = p5.Vector.sub(star.target, star.pos).mult(0.002);
         } else {
-            // Non-love stars orbit love center
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.002; // Slow rotation
+            star.angle += 0.002;
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
@@ -128,12 +126,18 @@ function draw() {
         star.vel.limit(0.3);
         star.pos.add(star.vel);
 
-        // Draw star
+        // Draw star as pulsating X
         const [r, g, b] = colors[star.emotion];
-        fill(r, g, b, 200 + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
+        const alpha = star.read ? 150 : 200; // Dim if read
+        const pulse = 1 + 0.2 * sin(frameCount * 0.05 + star.angle); // Breathing
+        const length = (12 + star.brightness * 4) * pulse; // Line length
+        const thickness = (2 + star.brightness * 0.5) * pulse; // Line thickness
+        stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
+        strokeWeight(thickness);
+        // Draw X (two lines: 45° and 135°)
+        line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
+        line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         noStroke();
-        const size = 12 + star.brightness * 4;
-        ellipse(star.pos.x, star.pos.y, size, size);
     });
 }
 
@@ -141,6 +145,8 @@ function mousePressed() {
     stars.forEach(star => {
         const size = 12 + star.brightness * 4;
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
+            // Mark as read
+            db.collection('sharedMoments').doc(star.id).update({ read: true });
             showCandleModal(star);
         }
     });
