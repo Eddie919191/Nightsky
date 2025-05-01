@@ -14,10 +14,11 @@ body {
 }
 
 body.portal-bg {
-    background: linear-gradient(to top, #000000 0%, transparent 100%), /* Black at bottom, transparent at top */
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, transparent 100%), /* Stronger black at bottom */
                 url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
     background-size: cover;
-    z-index: 0; /* Ensure below stars and portals */
+    z-index: 0; /* Below stars and portals */
+    min-height: 100vh; /* Ensure full coverage */
 }
 
 /* Stars Container (Fixed to Top) */
@@ -200,8 +201,6 @@ body.portal-bg {
     border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    -webkit-mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.4) 100%); /* Fade from 0% to 40% opacity */
-    mask-image: linear-gradient(to top, transparent 0%, rgba(0, 0, 0, 0.4) 100%); /* Standard property */
 }
 
 .portal img:hover {
