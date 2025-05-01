@@ -127,9 +127,52 @@ function mousePressed() {
     stars.forEach(star => {
         const size = 8 + star.brightness * 3;
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
-            alert(`Moment: ${star.text}\nEmotion: ${star.emotion}\nCandles: ${star.candles}`);
+            showCandleModal(star);
         }
     });
+}
+
+function showCandleModal(star) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Light a Candle</h2>
+            <p>Moment: ${star.text}</p>
+            <p>Emotion: ${star.emotion}</p>
+            <p>Candles: ${star.candles}</p>
+            <textarea id="candle-message" placeholder="Your message..."></textarea>
+            <button onclick="saveCandle('${star.id}')">Light Candle</button>
+            <button onclick="this.closest('.modal').remove()">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+async function saveCandle(momentId) {
+    const message = document.getElementById('candle-message').value.trim();
+    if (!message) {
+        alert('Please enter a candle message.');
+        return;
+    }
+    try {
+        console.log('Saving candle for moment:', momentId);
+        await db.collection('sharedMoments').doc(momentId).collection('candles').add({
+            message,
+            timestamp: new Date().toISOString(),
+            userId: firebase.auth().currentUser.uid
+        });
+        await db.collection('sharedMoments').doc(momentId).update({
+            candles: firebase.firestore.FieldValue.increment(1),
+            brightness: firebase.firestore.FieldValue.increment(0.1)
+        });
+        console.log('Candle saved');
+        document.querySelector('.modal').remove();
+        loadStars(); // Refresh stars
+    } catch (error) {
+        console.error('Error saving candle:', error);
+        alert('Error saving candle.');
+    }
 }
 
 function windowResized() {
