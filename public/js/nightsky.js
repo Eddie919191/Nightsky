@@ -40,6 +40,7 @@ const centers = {
 
 function setup() {
     createCanvas(windowWidth, windowHeight);
+    console.log('Canvas initialized:', windowWidth, windowHeight, 'p5.js version:', p5.prototype.VERSION);
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
             console.log('User not authenticated, redirecting to login');
@@ -58,14 +59,14 @@ function setup() {
                         star.brightness = data.brightness || 1;
                         star.emotion = data.emotion || star.emotion;
                         star.target = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
-                        if (data.posX && data.posY) {
+                        if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY)) {
                             star.pos.set(data.posX * width, data.posY * height);
                         }
                     }
                 } else if (change.type === 'added') {
                     const data = change.doc.data();
                     const angle = random(TWO_PI);
-                    const spawnDistance = max(width, height) * 1.2; // Closer spawn
+                    const spawnDistance = max(width, height); // Closer spawn
                     const initialPos = {
                         x: width / 2 + cos(angle) * spawnDistance,
                         y: height / 2 + sin(angle) * spawnDistance
@@ -101,15 +102,20 @@ async function loadStars() {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
             let initialPos;
-            if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY)) {
+            if (data.posX && data.posY && !isNaN(data.posX) && !isNaN(data.posY) && data.posX >= 0 && data.posX <= 1 && data.posY >= 0 && data.posY <= 1) {
                 initialPos = { x: data.posX * width, y: data.posY * height };
             } else {
-                // Default near emotion center
                 initialPos = {
-                    x: centers[data.emotion].x * width + random(-50, 50),
-                    y: centers[data.emotion].y * height + random(-50, 50)
+                    x: centers[data.emotion].x * width,
+                    y: centers[data.emotion].y * height
                 };
+                // Reset invalid positions in Firestore
+                db.collection('sharedMoments').doc(doc.id).update({
+                    posX: centers[data.emotion].x,
+                    posY: centers[data.emotion].y
+                }).catch(error => console.error('Error resetting position:', error));
             }
+            console.log('Star position:', doc.id, initialPos.x, initialPos.y);
             return {
                 id: doc.id,
                 text: data.text,
@@ -149,21 +155,28 @@ function draw() {
         rect(0, 0, width, height);
     }
 
+    // Fallback star to confirm rendering
+    if (stars.length === 0) {
+        fill(255, 255, 0);
+        noStroke();
+        ellipse(width / 2, height / 2, 10, 10);
+    }
+
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
 
     stars.forEach(star => {
         // Validate position
-        if (isNaN(star.pos.x) || isNaN(star.pos.y)) {
-            star.pos.set(centers[star.emotion].x * width, centers[star.emotion].y * height);
-            console.log('Fixed NaN position for star:', star.id);
+        if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y) || star.pos.x === null || star.pos.y === null) {
+            star.pos = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
+            console.log('Fixed invalid position for star:', star.id, star.pos.x, star.pos.y);
         }
         // Clamp to canvas
-        star.pos.x = constrain(star.pos.x, -width, width * 2);
-        star.pos.y = constrain(star.pos.y, -height, height * 2);
+        star.pos.x = constrain(star.pos.x, 0, width);
+        star.pos.y = constrain(star.pos.y, 0, height);
 
         let force = createVector(0, 0);
         if (star.isNew) {
-            force = p5.Vector.sub(star.target, star.pos).mult(0.0005); // Faster drift-in
+            force = p5.Vector.sub(star.target, star.pos).mult(0.001); // Faster drift-in
             if (p5.Vector.dist(star.pos, star.target) < 50) {
                 star.isNew = false;
             }
@@ -218,8 +231,10 @@ function draw() {
             }).catch(error => console.error('Error saving position:', error));
         }
 
-        // Debug position
-        console.log('Drawing star:', star.id, star.emotion, star.pos.x, star.pos.y);
+        // Throttled debug log
+        if (frameCount % 60 === 0) {
+            console.log('Drawing star:', star.id, star.emotion, star.pos.x, star.pos.y);
+        }
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
