@@ -19,15 +19,15 @@ try {
 const db = firebase.firestore();
 
 let stars = [];
-let fadeAlpha = 0; // For fade-in
+let fadeAlpha = 0;
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
-    grief: [30, 58, 95],   // Deep Blue #1E3A5F
-    love: [255, 111, 97],   // Warm Rose #FF6F61
-    wonder: [255, 215, 0],  // Celestial Gold #FFD700
-    hope: [111, 207, 151],  // Soft Emerald #6FCF97
-    anger: [192, 57, 43],   // Ember Red #C0392B
-    trust: [174, 223, 247]  // Pale Sky #AEDFF7
+    grief: [30 * 0.8 + 100 * 0.2, 58 * 0.8 + 100 * 0.2, 95 * 0.8 + 100 * 0.2],   // Blended with grey
+    love: [255 * 0.8 + 100 * 0.2, 111 * 0.8 + 100 * 0.2, 97 * 0.8 + 100 * 0.2],
+    wonder: [255 * 0.8 + 100 * 0.2, 215 * 0.8 + 100 * 0.2, 0 * 0.8 + 100 * 0.2],
+    hope: [111 * 0.8 + 100 * 0.2, 207 * 0.8 + 100 * 0.2, 151 * 0.8 + 100 * 0.2],
+    anger: [192 * 0.8 + 100 * 0.2, 57 * 0.8 + 100 * 0.2, 43 * 0.8 + 100 * 0.2],
+    trust: [174 * 0.8 + 100 * 0.2, 223 * 0.8 + 100 * 0.2, 247 * 0.8 + 100 * 0.2]
 };
 const centers = {
     grief: { x: 0.2, y: 0.8 },
@@ -86,14 +86,14 @@ async function loadStars() {
 function draw() {
     background(10, 10, 35);
 
-    // Subtle starfield background
+    // Starfield
     for (let i = 0; i < 50; i++) {
         fill(255, random(50, 100));
         noStroke();
         ellipse(random(width), random(height), 1, 1);
     }
 
-    // Fade-in effect
+    // Fade-in
     if (fadeAlpha < 255) {
         fadeAlpha += 2;
         fill(10, 10, 35, 255 - fadeAlpha);
@@ -109,7 +109,7 @@ function draw() {
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.001; // Slower rotation
+            star.angle += 0.001;
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
@@ -139,17 +139,17 @@ function draw() {
 
         star.vel.add(force);
         star.vel.mult(0.9);
-        star.vel.limit(0.2); // Slower motion
+        star.vel.limit(0.2);
         star.pos.add(star.vel);
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
-        const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1; // Slow pulse, only for candles
-        const length = (12 + star.brightness * 4) * pulse;
-        const thickness = (2 + star.brightness * 0.5) * pulse;
+        const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
+        const length = star.candles > 0 ? (8 + star.candles * 2) * pulse : 4; // Minimal for no candles
+        const thickness = star.candles > 0 ? (2 + star.candles * 0.5) * pulse : 1;
 
-        // Soft glow for candle-lit stars
+        // Glow for candle-lit stars
         if (star.candles > 0) {
             fill(r, g, b, 50);
             noStroke();
@@ -167,7 +167,7 @@ function draw() {
 
 function mousePressed() {
     stars.forEach(star => {
-        const size = 12 + star.brightness * 4;
+        const size = star.candles > 0 ? 8 + star.candles * 2 : 4;
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
             showCandleModal(star);
@@ -211,7 +211,6 @@ async function saveCandle(momentId) {
         });
         console.log('Candle saved');
         document.querySelector('.modal').remove();
-        // Update star in-memory
         const star = stars.find(s => s.id === momentId);
         if (star) {
             star.candles += 1;
