@@ -65,6 +65,32 @@ function setup() {
             });
         });
     });
+
+    // Event delegation for dynamically created buttons
+    document.addEventListener('click', (event) => {
+        const target = event.target.closest('button');
+        if (!target) return;
+
+        if (target.classList.contains('candle-btn')) {
+            console.log('Candle button clicked');
+            const momentId = target.dataset.momentId;
+            if (momentId) saveCandle(momentId);
+        } else if (target.classList.contains('close-btn')) {
+            console.log('Close/Cancel button clicked');
+            const modal = target.closest('.modal');
+            if (modal) modal.remove();
+        } else if (target.classList.contains('open-candle-btn')) {
+            console.log('Open candle interface button clicked');
+            const momentId = target.dataset.momentId;
+            if (momentId) {
+                const star = stars.find(s => s.id === momentId);
+                if (star) {
+                    document.querySelector('.modal')?.remove();
+                    showCandleModal(star, true);
+                }
+            }
+        }
+    });
 }
 
 async function loadStars() {
@@ -259,13 +285,13 @@ function showCandleModal(star, openCandleInterface = false) {
                     </select>
                     <textarea id="candle-message" placeholder="Your message (optional)..."></textarea>
                     <div class="modal-buttons">
-                        <button class="candle-btn" onclick="saveCandle('${star.id}')"><span>🔥</span></button>
-                        <button class="close-btn" onclick="document.querySelector('.modal').remove()">Cancel</button>
+                        <button class="candle-btn" data-moment-id="${star.id}"><span>🔥</span></button>
+                        <button class="close-btn">Cancel</button>
                     </div>
                 ` : `
                     <div class="modal-buttons">
-                        <button class="close-btn" onclick="document.querySelector('.modal').remove()">Close</button>
-                        <button class="open-candle-btn" onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span>🔥</span></button>
+                        <button class="close-btn">Close</button>
+                        <button class="open-candle-btn" data-moment-id="${star.id}"><span>🔥</span></button>
                     </div>
                 `}
             </div>
@@ -278,7 +304,7 @@ function showCandleModal(star, openCandleInterface = false) {
                 <p style="color: rgb(${r}, ${g}, ${b})">${star.text}</p>
                 <p>Error loading candles</p>
                 <div class="modal-buttons">
-                    <button class="close-btn" onclick="document.querySelector('.modal').remove()">Close</button>
+                    <button class="close-btn">Close</button>
                 </div>
             </div>
         `;
@@ -288,8 +314,13 @@ function showCandleModal(star, openCandleInterface = false) {
 
 async function saveCandle(momentId) {
     console.log('Attempting to save candle for moment:', momentId);
-    const message = document.getElementById('candle-emotion')?.value;
-    const candleEmotion = document.getElementById('candle-emotion').value;
+    const message = document.getElementById('candle-message')?.value.trim() || '';
+    const candleEmotion = document.getElementById('candle-emotion')?.value;
+    if (!candleEmotion) {
+        console.error('Candle emotion not selected');
+        alert('Please select an emotion for the candle.');
+        return;
+    }
     try {
         await db.collection('sharedMoments').doc(momentId).collection('candles').add({
             message,
@@ -317,7 +348,7 @@ async function saveCandle(momentId) {
             });
         }
         console.log('Candle saved successfully');
-        document.querySelector('.modal').remove();
+        document.querySelector('.modal')?.remove();
         const star = stars.find(s => s.id === momentId);
         if (star) {
             star.candles += 1;
