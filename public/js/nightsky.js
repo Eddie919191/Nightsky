@@ -226,37 +226,51 @@ function draw() {
         star.vel.limit(velLimit);
         star.pos.add(star.vel);
 
-        // Draw star with exponential growth
+        // Draw Glow Blossom
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const length = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse;
-        const thickness = 1 + 5 * (1 - Math.exp(-0.2 * star.candles)) * pulse;
+        const baseSize = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Core size
+        const haloSize = baseSize * (star.read ? 3 : 4); // Halo larger for unread
+        const tendrilLength = baseSize * 1.5; // Tendrils extend beyond core
 
+        // Draw emotion-colored halo
+        noStroke();
+        fill(r, g, b, alpha * 0.2 + 20 * sin(frameCount * 0.02)); // Pulsing halo
+        ellipse(star.pos.x, star.pos.y, haloSize, haloSize);
+
+        // Draw unread outer glow (if unread)
         if (!star.read) {
             fill(255, 255, 0, 20);
-            noStroke();
-            ellipse(star.pos.x, star.pos.y, length * 4, length * 4);
-            fill(255, 255, 0, 50);
-            ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
-            stroke(255, 255, 0, 100);
-            strokeWeight(0.5);
-            line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
-            line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
-        } else {
+            ellipse(star.pos.x, star.pos.y, haloSize * 1.5, haloSize * 1.5);
             fill(255, 255, 0, 10);
-            noStroke();
-            ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
-            stroke(255, 255, 0, 40);
-            strokeWeight(0.5);
-            line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
-            line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
+            ellipse(star.pos.x, star.pos.y, haloSize * 2, haloSize * 2);
         }
 
+        // Draw central core
+        fill(255, 255, 200, alpha); // Yellow-white core
+        ellipse(star.pos.x, star.pos.y, baseSize * 0.5, baseSize * 0.5);
+
+        // Draw tendrils (6 petals)
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
-        strokeWeight(thickness);
-        line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
-        line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
+        strokeWeight(baseSize * 0.1); // Thin tendrils
+        const numTendrils = 6;
+        for (let i = 0; i < numTendrils; i++) {
+            const angle = (TWO_PI / numTendrils) * i + frameCount * 0.005; // Slight rotation
+            const x1 = star.pos.x;
+            const y1 = star.pos.y;
+            const x2 = x1 + cos(angle) * tendrilLength;
+            const y2 = y1 + sin(angle) * tendrilLength;
+            const cx = x1 + cos(angle) * tendrilLength * 0.5; // Control point for curve
+            const cy = y1 + sin(angle) * tendrilLength * 0.5;
+            // Quadratic bezier for curved tendrils
+            noFill();
+            beginShape();
+            vertex(x1, y1);
+            quadraticVertex(cx + random(-baseSize * 0.2, baseSize * 0.2), cy + random(-baseSize * 0.2, baseSize * 0.2), x2, y2);
+            endShape();
+        }
+
         noStroke();
     });
 }
