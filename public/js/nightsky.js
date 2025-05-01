@@ -58,34 +58,7 @@ function setup() {
                         star.brightness = data.brightness || 1;
                         star.emotion = data.emotion || star.emotion;
                         star.target = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
-                        if (data.posX && data.posY) {
-                            star.pos.set(data.posX * width, data.posY * height);
-                        }
                     }
-                } else if (change.type === 'added') {
-                    // Handle new stars dynamically
-                    const data = change.doc.data();
-                    const angle = random(TWO_PI);
-                    const spawnDistance = sqrt(width * width + height * height);
-                    const initialPos = {
-                        x: width / 2 + cos(angle) * spawnDistance,
-                        y: height / 2 + sin(angle) * spawnDistance
-                    };
-                    const star = {
-                        id: change.doc.id,
-                        text: data.text,
-                        emotion: data.emotion,
-                        originalEmotion: data.originalEmotion || data.emotion,
-                        brightness: data.brightness || 1,
-                        candles: data.candles || 0,
-                        read: data.read || false,
-                        pos: createVector(initialPos.x, initialPos.y),
-                        vel: p5.Vector.random2D().mult(0.05),
-                        target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
-                        angle: random(TWO_PI),
-                        isNew: true // Flag for drift-in
-                    };
-                    stars.push(star);
                 }
             });
         });
@@ -100,17 +73,10 @@ async function loadStars() {
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
-            let initialPos;
-            if (data.posX && data.posY) {
-                initialPos = { x: data.posX * width, y: data.posY * height };
-            } else {
-                const angle = random(TWO_PI);
-                const spawnDistance = sqrt(width * width + height * height);
-                initialPos = {
-                    x: width / 2 + cos(angle) * spawnDistance,
-                    y: height / 2 + sin(angle) * spawnDistance
-                };
-            }
+            const initialPos = {
+                x: centers.love.x * width + random(-50, 50),
+                y: centers.love.y * height + random(-50, 50)
+            };
             return {
                 id: doc.id,
                 text: data.text,
@@ -120,10 +86,9 @@ async function loadStars() {
                 candles: data.candles || 0,
                 read: data.read || false,
                 pos: createVector(initialPos.x, initialPos.y),
-                vel: p5.Vector.random2D().mult(0.05),
+                vel: p5.Vector.random2D().mult(0.1),
                 target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
-                angle: random(TWO_PI),
-                isNew: !data.posX // New if no stored position
+                angle: random(TWO_PI)
             };
         });
         console.log('Stars loaded:', stars.length);
@@ -154,34 +119,28 @@ function draw() {
 
     stars.forEach(star => {
         let force = createVector(0, 0);
-        if (star.isNew) {
-            // Gentle drift-in for new stars
-            force = p5.Vector.sub(star.target, star.pos).mult(0.0002);
-            if (p5.Vector.dist(star.pos, star.target) < 50) {
-                star.isNew = false; // Stop drift-in when close
-            }
-        } else if (star.emotion === 'love') {
-            force = p5.Vector.sub(star.target, star.pos).mult(0.001);
+        if (star.emotion === 'love') {
+            force = p5.Vector.sub(star.target, star.pos).mult(0.002);
         } else {
             const distance = p5.Vector.dist(star.pos, createVector(loveCenter.x, loveCenter.y));
             const orbitRadius = constrain(distance, 50, 200);
-            star.angle += 0.0005; // Slower rotation
+            star.angle += 0.001;
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
-            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0003);
+            force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
             const originalTarget = createVector(centers[star.originalEmotion].x * width, centers[star.originalEmotion].y * height);
-            force.add(p5.Vector.sub(originalTarget, star.pos).mult(0.00005));
+            force.add(p5.Vector.sub(originalTarget, star.pos).mult(0.0001));
         }
 
         // Attraction and repulsion for same-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion === star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
-                if (d < 30 && d > 0) {
-                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.015 / d);
+                if (d < 20 && d > 0) {
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
                     force.add(repel);
                 } else if (d < 100 && d > 0) {
-                    let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0001 / d);
+                    let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0002 / d);
                     force.add(attract);
                 }
             }
@@ -192,24 +151,16 @@ function draw() {
             if (other !== star && other.emotion !== star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
                 if (d < 80 && d > 0) {
-                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.02 / d);
                     force.add(repel);
                 }
             }
         });
 
         star.vel.add(force);
-        star.vel.mult(0.95); // Stronger damping
-        star.vel.limit(0.15); // Slower max speed
+        star.vel.mult(0.9);
+        star.vel.limit(0.2);
         star.pos.add(star.vel);
-
-        // Save position to Firestore periodically
-        if (frameCount % 60 === 0) {
-            db.collection('sharedMoments').doc(star.id).update({
-                posX: star.pos.x / width,
-                posY: star.pos.y / height
-            }).catch(error => console.error('Error saving position:', error));
-        }
 
         // Draw star
         const [r, g, b] = colors[star.emotion];
@@ -220,17 +171,18 @@ function draw() {
 
         // Yellow glow for read/unread
         if (!star.read) {
-            fill(255, 255, 0, 20);
+            // Layered glow for fading effect
+            fill(255, 255, 0, 20); // Outer faint yellow
             noStroke();
             ellipse(star.pos.x, star.pos.y, length * 4, length * 4);
-            fill(255, 255, 0, 50);
+            fill(255, 255, 0, 50); // Inner bright yellow
             ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
-            stroke(255, 255, 0, 100);
+            stroke(255, 255, 0, 100); // Bright outline
             strokeWeight(0.5);
             line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
             line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         } else {
-            fill(255, 255, 0, 10);
+            fill(255, 255, 0, 10); // Dim yellow for read
             noStroke();
             ellipse(star.pos.x, star.pos.y, length * 3, length * 3);
             stroke(255, 255, 0, 40);
@@ -239,7 +191,7 @@ function draw() {
             line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
         }
 
-        // X-shaped star
+        // X-shaped star (drawn after glow to ensure visibility)
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
         strokeWeight(thickness);
         line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
