@@ -21,6 +21,7 @@ const db = firebase.firestore();
 let stars = [];
 let fadeAlpha = 0;
 let burstTimer = 0;
+let initialSnapTimer = 0; // New timer for initial snap
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -171,6 +172,7 @@ function draw() {
 
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
     burstTimer = min(burstTimer + 1, 180);
+    initialSnapTimer = min(initialSnapTimer + 1, 360); // Timer for snap and deceleration
 
     stars.forEach(star => {
         if (!star.pos || isNaN(star.pos.x) || isNaN(star.pos.y)) {
@@ -181,9 +183,19 @@ function draw() {
         star.pos.y = constrain(star.pos.y, 0, height);
 
         let force = createVector(0, 0);
-        const t = burstTimer;
-        const forceMult = 0.0003 + (0.01 - 0.0003) * Math.exp(-3 * t / 180);
-        const velLimit = 0.15 + (1 - 0.15) * Math.exp(-3 * t / 180);
+        let forceMult, velLimit;
+
+        // Initial snap (first 2 seconds, 120 frames)
+        if (initialSnapTimer < 120) {
+            forceMult = 0.05; // High force for quick snap
+            velLimit = 2; // Fast movement
+        } else {
+            // Exponential deceleration after snap
+            const t = initialSnapTimer - 120; // Time since snap ended
+            const decay = Math.exp(-5 * t / 360); // Fast decay over ~6 seconds
+            forceMult = 0.0001 + (0.002 - 0.0001) * decay; // Decays to slow force
+            velLimit = 0.05 + (0.2 - 0.05) * decay; // Decays to slow velocity
+        }
 
         if (star.emotion === 'love') {
             force = p5.Vector.sub(star.target, star.pos).mult(forceMult * 2);
@@ -222,7 +234,7 @@ function draw() {
         });
 
         star.vel.add(force);
-        star.vel.mult(0.95);
+        star.vel.mult(0.98); // Increased drag for smoother motion
         star.vel.limit(velLimit);
         star.pos.add(star.vel);
 
@@ -230,7 +242,7 @@ function draw() {
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const baseSize = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Core size
+        const baseSize = 4 + 4 * (1 - Math.exp(-0.01 * star.candles)) * pulse; // Slower size growth
         const haloSize = baseSize * (star.read ? 3 : 4); // Halo larger for unread
         const tendrilLength = baseSize * 1.5; // Tendrils extend beyond core
 
@@ -277,7 +289,7 @@ function draw() {
 
 function mousePressed() {
     stars.forEach(star => {
-        const size = 4 + 20 * (1 - Math.exp(-0.2 * star.candles));
+        const size = 4 + 4 * (1 - Math.exp(-0.01 * star.candles)); // Updated for click detection
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
             showCandleModal(star, false);
