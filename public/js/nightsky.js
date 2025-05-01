@@ -22,7 +22,7 @@ let stars = [];
 let fadeAlpha = 0;
 let burstTimer = 0;
 let initialSnapTimer = 0;
-let chatboxTimer = 0; // New timer for chatbox
+let chatboxTimer = 0;
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
     grief: [44, 68, 104],
@@ -73,11 +73,12 @@ function setup() {
         portalButton.innerText = 'Back to Portals';
         document.body.appendChild(portalButton);
 
-        // Add User Icon (Bottom Center)
-        const userIcon = document.createElement('button');
-        userIcon.className = 'user-icon';
-        userIcon.innerHTML = '<span>🧑</span>';
-        document.body.appendChild(userIcon);
+        // Add Messages Icon (Bottom Center)
+        const messagesIcon = document.createElement('button');
+        messagesIcon.className = 'messages-icon';
+        messagesIcon.innerHTML = '<span>✉️</span>';
+        messagesIcon.setAttribute('aria-label', 'View your messages and candles');
+        document.body.appendChild(messagesIcon);
     });
 
     // Event delegation for dynamically created buttons
@@ -106,8 +107,8 @@ function setup() {
         } else if (target.classList.contains('portal-btn')) {
             console.log('Portal button clicked, returning to main menu');
             window.location.href = '/public/index.html';
-        } else if (target.classList.contains('user-icon')) {
-            console.log('User icon clicked, opening user candles interface');
+        } else if (target.classList.contains('messages-icon')) {
+            console.log('Messages icon clicked, opening user candles interface');
             showUserCandlesModal();
         }
     });
@@ -174,9 +175,8 @@ function draw() {
     const loveCenter = { x: 0.5 * width, y: 0.5 * height };
     burstTimer = min(burstTimer + 1, 180);
     initialSnapTimer = min(initialSnapTimer + 1, 360);
-    chatboxTimer += 1; // Increment chatbox timer
+    chatboxTimer += 1;
 
-    // Check for chatbox after 30 seconds (1800 frames at 60 FPS)
     if (chatboxTimer === 1800 && !document.querySelector('.chatbox')) {
         showRandomChatbox();
     }
@@ -288,18 +288,15 @@ function draw() {
 }
 
 function showRandomChatbox() {
-    // Find stars with changed emotions
     const eligibleStars = stars.filter(star => star.emotion !== star.originalEmotion);
     if (eligibleStars.length === 0) {
         console.log('No stars with changed emotions for chatbox');
         return;
     }
 
-    // Pick a random star
     const star = eligibleStars[Math.floor(Math.random() * eligibleStars.length)];
     const [r, g, b] = colors[star.emotion];
 
-    // Generate message
     const messages = [
         `From ${star.originalEmotion} to ${star.emotion}, this moment shines brighter through shared hearts!`,
         `This ${star.originalEmotion} moment transformed into ${star.emotion} with the warmth of many candles!`,
@@ -308,23 +305,20 @@ function showRandomChatbox() {
     ];
     const message = messages[Math.floor(Math.random() * messages.length)];
 
-    // Create chatbox
     const chatbox = document.createElement('div');
     chatbox.className = 'chatbox';
     chatbox.innerHTML = `<p style="color: rgb(${r}, ${g}, ${b})">${message}</p>`;
     
-    // Position near star (adjust to avoid screen edges)
-    const x = Math.min(Math.max(star.pos.x, 50), windowWidth - 150); // Keep within bounds
+    const x = Math.min(Math.max(star.pos.x 150), windowWidth - 150);
     const y = Math.min(Math.max(star.pos.y, 50), windowHeight - 100);
     chatbox.style.left = `${x}px`;
     chatbox.style.top = `${y}px`;
 
     document.body.appendChild(chatbox);
 
-    // Remove after 5 seconds
     setTimeout(() => {
         chatbox.style.opacity = '0';
-        setTimeout(() => chatbox.remove(), 500); // Wait for fade-out
+        setTimeout(() => chatbox.remove(), 500);
     }, 5000);
 }
 
@@ -401,6 +395,7 @@ async function showUserCandlesModal() {
     const user = firebase.auth().currentUser;
     if (!user) {
         console.log('No user authenticated for user candles modal');
+        document.getElementById('candles-list').innerHTML = '<p>Please log in to view your candles.</p>';
         return;
     }
 
@@ -420,14 +415,22 @@ async function showUserCandlesModal() {
     document.body.appendChild(modal);
 
     try {
+        // Fetch shared moments
         const momentsSnapshot = await db.collection('sharedMoments').get();
+        if (!momentsSnapshot) {
+            console.error('Firestore query returned undefined snapshot');
+            document.getElementById('candles-list').innerHTML = '<p>Error: Unable to fetch moments.</p>';
+            return;
+        }
+
         const moments = momentsSnapshot.docs.map(doc => ({
             id: doc.id,
-            text: doc.data().text,
+            text: doc.data().text || '',
             read: doc.data().read || false,
             emotion: doc.data().emotion || 'love'
         }));
 
+        // Fetch user's candles
         const userCandles = [];
         for (const moment of moments) {
             const candlesSnapshot = await db.collection('sharedMoments').doc(moment.id).collection('candles')
@@ -439,15 +442,17 @@ async function showUserCandlesModal() {
                     momentId: moment.id,
                     momentText: moment.text,
                     momentRead: moment.read,
-                    emotion: data.emotion,
+                    emotion: data.emotion || 'love',
                     message: data.message || '',
-                    timestamp: data.timestamp
+                    timestamp: data.timestamp || ''
                 });
             });
         }
 
+        // Sort by timestamp (newest first)
         userCandles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+        // Display candles/messages
         const candlesList = document.getElementById('candles-list');
         if (userCandles.length === 0) {
             candlesList.innerHTML = '<p>No candles or messages yet.</p>';
@@ -465,8 +470,8 @@ async function showUserCandlesModal() {
             }).join('');
         }
     } catch (error) {
-        console.error('Error loading user candles:', error);
-        document.getElementById('candles-list').innerHTML = '<p>Error loading your candles.</p>';
+        console.error('Error loading user candles:', error, 'User ID:', user.uid);
+        document.getElementById('candles-list').innerHTML = '<p>Error loading your candles. Please try again later.</p>';
     }
 }
 
