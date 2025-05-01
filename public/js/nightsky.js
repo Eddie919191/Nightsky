@@ -64,6 +64,18 @@ function setup() {
                 }
             });
         });
+
+        // Add Portal Button (Top Center)
+        const portalButton = document.createElement('button');
+        portalButton.className = 'portal-btn';
+        portalButton.innerText = 'Back to Portals';
+        document.body.appendChild(portalButton);
+
+        // Add User Icon (Bottom Center)
+        const userIcon = document.createElement('button');
+        userIcon.className = 'user-icon';
+        userIcon.innerHTML = '<span>🧑</span>';
+        document.body.appendChild(userIcon);
     });
 
     // Event delegation for dynamically created buttons
@@ -89,6 +101,12 @@ function setup() {
                     showCandleModal(star, true);
                 }
             }
+        } else if (target.classList.contains('portal-btn')) {
+            console.log('Portal button clicked, returning to main menu');
+            window.location.href = '/public/index.html';
+        } else if (target.classList.contains('user-icon')) {
+            console.log('User icon clicked, opening user candles interface');
+            showUserCandlesModal();
         }
     });
 }
@@ -310,6 +328,83 @@ function showCandleModal(star, openCandleInterface = false) {
         `;
         document.body.appendChild(modal);
     });
+}
+
+async function showUserCandlesModal() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        console.log('No user authenticated for user candles modal');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal user-candles-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Your Candles & Messages</h2>
+            <div class="candles-list" id="candles-list">
+                <p>Loading...</p>
+            </div>
+            <div class="modal-buttons">
+                <button class="close-btn">Close</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    try {
+        // Fetch all shared moments to check read status
+        const momentsSnapshot = await db.collection('sharedMoments').get();
+        const moments = momentsSnapshot.docs.map(doc => ({
+            id: doc.id,
+            text: doc.data().text,
+            read: doc.data().read || false,
+            emotion: doc.data().emotion || 'love'
+        }));
+
+        // Fetch user's candles across all shared moments
+        const userCandles = [];
+        for (const moment of moments) {
+            const candlesSnapshot = await db.collection('sharedMoments').doc(moment.id).collection('candles')
+                .where('userId', '==', user.uid)
+                .get();
+            candlesSnapshot.forEach(doc => {
+                const data = doc.data();
+                userCandles.push({
+                    momentId: moment.id,
+                    momentText: moment.text,
+                    momentRead: moment.read,
+                    emotion: data.emotion,
+                    message: data.message || '',
+                    timestamp: data.timestamp
+                });
+            });
+        }
+
+        // Sort by timestamp (newest first)
+        userCandles.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        // Display candles/messages
+        const candlesList = document.getElementById('candles-list');
+        if (userCandles.length === 0) {
+            candlesList.innerHTML = '<p>No candles or messages yet.</p>';
+        } else {
+            candlesList.innerHTML = userCandles.map(candle => {
+                const [r, g, b] = colors[candle.emotion];
+                const unreadIndicator = !candle.momentRead ? '<span class="unread-indicator">✨ Unread</span>' : '';
+                return `
+                    <div class="candle-item ${!candle.momentRead ? 'unread' : ''}">
+                        <p><strong style="color: rgb(${r}, ${g}, ${b})">${candle.emotion}</strong> on "${candle.momentText.substring(0, 50)}${candle.momentText.length > 50 ? '...' : ''}"</p>
+                        ${candle.message ? `<p>Message: ${candle.message}</p>` : ''}
+                        ${unreadIndicator}
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch (error) {
+        console.error('Error loading user candles:', error);
+        document.getElementById('candles-list').innerHTML = '<p>Error loading your candles.</p>';
+    }
 }
 
 async function saveCandle(momentId) {
