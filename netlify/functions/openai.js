@@ -40,8 +40,9 @@ exports.handler = async (event) => {
         if (detectBreakthrough) {
             const lastMessages = history.slice(-4).concat([{ role: 'user', content: message }, { role: 'assistant', content: data.choices[0].message.content }]);
             const breakthroughPrompt = `
-                Analyze the following conversation for a moment of personal insight or emotional breakthrough. If detected, provide a 2-3 sentence summary of the insight in a "breakthrough" object. If none, return an empty object.
+                Analyze the following conversation for a moment of personal insight, emotional breakthrough, or shift in perspective (e.g., realizing peace, strength, clarity, or letting go). Be highly sensitive to phrases like "let go," "feel strong," "breakthrough," or expressions of emotional release or renewal. If detected, provide a 2-3 sentence summary of the insight in a "breakthrough" object with a "summary" field. If none, return an empty object.
                 Conversation: ${JSON.stringify(lastMessages)}
+                Format: { "breakthrough": { "summary": "..." } }
             `;
             const breakthroughResponse = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
@@ -61,10 +62,15 @@ exports.handler = async (event) => {
                 const breakthroughData = await breakthroughResponse.json();
                 try {
                     const breakthrough = JSON.parse(breakthroughData.choices[0].message.content);
+                    console.log('Breakthrough parsed:', breakthrough); // Debug
                     responseData.breakthrough = breakthrough.breakthrough || {};
                 } catch (e) {
+                    console.error('Error parsing breakthrough:', e);
                     responseData.breakthrough = {};
                 }
+            } else {
+                console.error('Breakthrough API error:', breakthroughResponse.status);
+                responseData.breakthrough = {};
             }
         }
 
