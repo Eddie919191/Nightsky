@@ -1,22 +1,29 @@
+// Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyC2TvTe6Y-WLrKKeikJ111EeHe2ZdGvK2I",
+    authDomain: "reflections-92fbc.firebaseapp.com",
+    projectId: "reflections-92fbc",
+    storageBucket: "reflections-92fbc.firebasestorage.app",
+    messagingSenderId: "485903066751",
+    appId: "1:485903066751:web:73e26cbacdb2154a4b014a"
+};
+
+// Initialize Firebase
+try {
+    firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+} catch (error) {
+    console.error('Firebase initialization failed:', error);
+}
+
+// Check auth state
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if user is authenticated
     firebase.auth().onAuthStateChanged(user => {
         if (!user) {
+            console.log('User not authenticated, redirecting to login');
             window.location.href = '/public/login.html';
+        } else {
+            console.log('Authenticated user:', user.uid);
         }
     });
-
-    // Smooth portal transitions
-    document.querySelectorAll('.portal a').forEach(link => {
-        link.addEventListener('click', e => {
-            e.preventDefault();
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                window.location.href = link.href;
-            }, 500);
-        });
-    });
-
-    // Fade in portals
-    document.querySelector('.portals').style.opacity = '1';
 });
