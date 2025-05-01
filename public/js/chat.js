@@ -125,9 +125,9 @@ async function sendMessage(userId, type) {
         console.log('Message exchange complete');
 
         // Handle breakthrough
-        if (breakthrough && breakthrough.emotion) {
-            console.log('Breakthrough detected:', message, 'Emotion:', breakthrough.emotion);
-            showBreakthroughModal({ text: message, emotion: breakthrough.emotion }, type, userId);
+        if (breakthrough && breakthrough.summary && breakthrough.emotion) {
+            console.log('Breakthrough detected:', breakthrough.summary, 'Emotion:', breakthrough.emotion);
+            showBreakthroughModal(breakthrough, type, userId);
         }
     } catch (error) {
         console.error('Error sending message:', error);
@@ -156,7 +156,7 @@ async function getChatHistory(userId, type) {
 
 function showBreakthroughModal(breakthrough, type, userId) {
     console.log('Showing breakthrough modal with:', breakthrough);
-    const text = breakthrough.text || 'A moment of insight occurred.';
+    const text = breakthrough.summary || 'A moment of insight occurred.';
     const emotion = breakthrough.emotion || 'grief';
     const modal = document.createElement('div');
     modal.className = 'modal';
