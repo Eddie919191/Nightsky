@@ -15,6 +15,7 @@ body {
 
 body.portal-bg {
     background: transparent;
+    background: linear-gradient(to top, #0A0A23 0%, transparent 100%); /* Black to transparent */
 }
 
 /* Background Image with Rotation */
