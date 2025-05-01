@@ -89,7 +89,7 @@ async function loadStars() {
                 read: data.read || false,
                 pos: createVector(initialPos.x, initialPos.y),
                 vel: p5.Vector.random2D().mult(0.1),
-                target: createVector(centers[data.emotion].x * width, centers[data.emotion].y * height),
+                target: createVector(centers[data.emotion].x * width, centers[star.emotion].y * height),
                 angle: random(TWO_PI)
             };
         });
@@ -185,8 +185,8 @@ function draw() {
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const length = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Base=4, max growth=20
-        const thickness = 1 + 5 * (1 - Math.exp(-0.2 * star.candles)) * pulse; // Base=1, max growth=5
+        const length = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)) * pulse;
+        const thickness = 1 + 5 * (1 - Math.exp(-0.2 * star.candles)) * pulse;
 
         if (!star.read) {
             fill(255, 255, 0, 20);
@@ -218,10 +218,10 @@ function draw() {
 
 function mousePressed() {
     stars.forEach(star => {
-        const size = 4 + 20 * (1 - Math.exp(-0.2 * star.candles)); // Match length
+        const size = 4 + 20 * (1 - Math.exp(-0.2 * star.candles));
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
-            showCandleModal(star, true); // Open candle interface directly
+            showCandleModal(star, false); // Show text-only modal first
         }
     });
 }
@@ -257,10 +257,12 @@ function showCandleModal(star, openCandleInterface = false) {
                         <option value="trust">Trust</option>
                     </select>
                     <textarea id="candle-message" placeholder="Your message (optional)..."></textarea>
-                    <button onclick="saveCandle('${star.id}')"><span style="font-size: 1.5em;">🔥</span></button>
+                    <button class="candle-btn"><span>🔥</span></button>
                 ` : ''}
-                <button onclick="this.closest('.modal').remove()">Close</button>
-                ${!openCandleInterface ? `<button onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span style="font-size: 1.2em;">🔥</span></button>` : ''}
+                <div class="modal-buttons">
+                    <button class="close-btn">Close</button>
+                    ${!openCandleInterface ? `<button class="open-candle-btn" onclick="document.querySelector('.modal').remove(); showCandleModal(stars.find(s => s.id === '${star.id}'), true);"><span>🔥</span></button>` : ''}
+                </div>
             </div>
         `;
         document.body.appendChild(modal);
