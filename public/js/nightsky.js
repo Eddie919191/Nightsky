@@ -22,12 +22,12 @@ let stars = [];
 let fadeAlpha = 0;
 const emotions = ['grief', 'love', 'wonder', 'hope', 'anger', 'trust'];
 const colors = {
-    grief: [30 * 0.8 + 100 * 0.2, 58 * 0.8 + 100 * 0.2, 95 * 0.8 + 100 * 0.2],   // Blended with grey
-    love: [255 * 0.8 + 100 * 0.2, 111 * 0.8 + 100 * 0.2, 97 * 0.8 + 100 * 0.2],
-    wonder: [255 * 0.8 + 100 * 0.2, 215 * 0.8 + 100 * 0.2, 0 * 0.8 + 100 * 0.2],
-    hope: [111 * 0.8 + 100 * 0.2, 207 * 0.8 + 100 * 0.2, 151 * 0.8 + 100 * 0.2],
-    anger: [192 * 0.8 + 100 * 0.2, 57 * 0.8 + 100 * 0.2, 43 * 0.8 + 100 * 0.2],
-    trust: [174 * 0.8 + 100 * 0.2, 223 * 0.8 + 100 * 0.2, 247 * 0.8 + 100 * 0.2]
+    grief: [44, 68, 104],
+    love: [224, 108, 98],
+    wonder: [224, 192, 20],
+    hope: [108, 185, 140],
+    anger: [173, 65, 54],
+    trust: [159, 198, 217]
 };
 const centers = {
     grief: { x: 0.2, y: 0.8 },
@@ -115,11 +115,16 @@ function draw() {
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
         }
 
-        // Attraction to same-emotion stars
+        // Attraction and slight repulsion for same-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion === star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
-                if (d < 100 && d > 0) {
+                if (d < 20 && d > 0) {
+                    // Repel if too close
+                    let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
+                    force.add(repel);
+                } else if (d < 100 && d > 0) {
+                    // Attract otherwise
                     let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0002 / d);
                     force.add(attract);
                 }
@@ -146,15 +151,18 @@ function draw() {
         const [r, g, b] = colors[star.emotion];
         const alpha = star.read ? 150 : 200;
         const pulse = star.candles > 0 ? 1 + 0.15 * sin(frameCount * 0.01 + star.angle) : 1;
-        const length = star.candles > 0 ? (8 + star.candles * 2) * pulse : 4; // Minimal for no candles
+        const length = star.candles > 0 ? (8 + star.candles * 2) * pulse : 4;
         const thickness = star.candles > 0 ? (2 + star.candles * 0.5) * pulse : 1;
 
-        // Glow for candle-lit stars
-        if (star.candles > 0) {
-            fill(r, g, b, 50);
-            noStroke();
-            ellipse(star.pos.x, star.pos.y, length * 1.5, length * 1.5);
-        }
+        // Golden glow for read/unread
+        const glowAlpha = star.read ? 40 : 80;
+        fill(255, 215, 0, glowAlpha / 2); // Faint golden glow
+        noStroke();
+        ellipse(star.pos.x, star.pos.y, length * 2, length * 2);
+        stroke(255, 215, 0, glowAlpha); // Golden outline
+        strokeWeight(0.5); // Thin regardless of size
+        line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
+        line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
 
         // X-shaped star
         stroke(r, g, b, alpha + 55 * sin(frameCount * 0.02) * (star.brightness - 1));
