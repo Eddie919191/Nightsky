@@ -48,6 +48,21 @@ function setup() {
         }
         console.log('Authenticated user:', user.uid);
         loadStars();
+        // Listen for candle changes
+        db.collection('sharedMoments').onSnapshot(snapshot => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'modified') {
+                    const data = change.doc.data();
+                    const star = stars.find(s => s.id === change.doc.id);
+                    if (star) {
+                        star.candles = data.candles || 0;
+                        star.brightness = data.brightness || 1;
+                        star.emotion = data.emotion || star.emotion;
+                        star.target = createVector(centers[star.emotion].x * width, centers[star.emotion].y * height);
+                    }
+                }
+            });
+        });
     });
 }
 
@@ -67,6 +82,7 @@ async function loadStars() {
                 id: doc.id,
                 text: data.text,
                 emotion: data.emotion,
+                originalEmotion: data.originalEmotion || data.emotion, // Store original
                 brightness: data.brightness || 1,
                 candles: data.candles || 0,
                 read: data.read || false,
@@ -113,18 +129,19 @@ function draw() {
             const targetX = loveCenter.x + orbitRadius * cos(star.angle);
             const targetY = loveCenter.y + orbitRadius * sin(star.angle);
             force = p5.Vector.sub(createVector(targetX, targetY), star.pos).mult(0.0005);
+            // Slight pull to original emotion
+            const originalTarget = createVector(centers[star.originalEmotion].x * width, centers[star.originalEmotion].y * height);
+            force.add(p5.Vector.sub(originalTarget, star.pos).mult(0.0001));
         }
 
-        // Attraction and slight repulsion for same-emotion stars
+        // Attraction and repulsion for same-emotion stars
         stars.forEach(other => {
             if (other !== star && other.emotion === star.emotion) {
                 let d = p5.Vector.dist(star.pos, other.pos);
                 if (d < 20 && d > 0) {
-                    // Repel if too close
                     let repel = p5.Vector.sub(star.pos, other.pos).mult(0.01 / d);
                     force.add(repel);
                 } else if (d < 100 && d > 0) {
-                    // Attract otherwise
                     let attract = p5.Vector.sub(other.pos, star.pos).mult(0.0002 / d);
                     force.add(attract);
                 }
@@ -155,12 +172,12 @@ function draw() {
         const thickness = star.candles > 0 ? (2 + star.candles * 0.5) * pulse : 1;
 
         // Golden glow for read/unread
-        const glowAlpha = star.read ? 40 : 80;
-        fill(255, 215, 0, glowAlpha / 2); // Faint golden glow
+        const glowAlpha = star.read ? 20 : 60;
+        fill(255, 215, 0, glowAlpha / 2);
         noStroke();
-        ellipse(star.pos.x, star.pos.y, length * 2, length * 2);
-        stroke(255, 215, 0, glowAlpha); // Golden outline
-        strokeWeight(0.5); // Thin regardless of size
+        ellipse(star.pos.x, star.pos.y, length * 3, length * 3); // Larger glow
+        stroke(255, 215, 0, star.read ? 40 : 100);
+        strokeWeight(0.5);
         line(star.pos.x - length / 2, star.pos.y - length / 2, star.pos.x + length / 2, star.pos.y + length / 2);
         line(star.pos.x - length / 2, star.pos.y + length / 2, star.pos.x + length / 2, star.pos.y - length / 2);
 
@@ -186,22 +203,45 @@ function mousePressed() {
 function showCandleModal(star) {
     const modal = document.createElement('div');
     modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Light a Candle</h2>
-            <p>Moment: ${star.text}</p>
-            <p>Emotion: ${star.emotion}</p>
-            <p>Candles: ${star.candles}</p>
-            <textarea id="candle-message" placeholder="Your message..."></textarea>
-            <button onclick="saveCandle('${star.id}')">Light Candle</button>
-            <button onclick="this.closest('.modal').remove()">Cancel</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    const [r, g, b] = colors[star.emotion];
+    // Fetch candle counts per emotion
+    db.collection('sharedMoments').doc(star.id).collection('candles').get().then(snapshot => {
+        const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.emotion) candleCounts[data.emotion]++;
+        });
+        const candleDisplay = Object.entries(candleCounts)
+            .filter(([_, count]) => count > 0)
+            .map(([emotion, count]) => {
+                const [cr, cg, cb] = colors[emotion];
+                return `<span style="color: rgb(${cr}, ${cg}, ${cb})">🕯️ ${count}</span>`;
+            })
+            .join(' ');
+        modal.innerHTML = `
+            <div class="modal-content">
+                <p style="color: rgb(${r}, ${g}, ${b})">${star.text}</p>
+                <p>${candleDisplay || 'No candles yet'}</p>
+                <select id="candle-emotion">
+                    <option value="grief">Grief</option>
+                    <option value="love">Love</option>
+                    <option value="wonder">Wonder</option>
+                    <option value="hope">Hope</option>
+                    <option value="anger">Anger</option>
+                    <option value="trust">Trust</option>
+                </select>
+                <textarea id="candle-message" placeholder="Your message..."></textarea>
+                <button onclick="saveCandle('${star.id}')">Light Candle</button>
+                <button onclick="this.closest('.modal').remove()">Cancel</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    });
 }
 
 async function saveCandle(momentId) {
     const message = document.getElementById('candle-message').value.trim();
+    const candleEmotion = document.getElementById('candle-emotion').value;
     if (!message) {
         alert('Please enter a candle message.');
         return;
@@ -210,6 +250,7 @@ async function saveCandle(momentId) {
         console.log('Saving candle for moment:', momentId);
         await db.collection('sharedMoments').doc(momentId).collection('candles').add({
             message,
+            emotion: candleEmotion,
             timestamp: new Date().toISOString(),
             userId: firebase.auth().currentUser.uid
         });
@@ -217,6 +258,22 @@ async function saveCandle(momentId) {
             candles: firebase.firestore.FieldValue.increment(1),
             brightness: firebase.firestore.FieldValue.increment(0.1)
         });
+        // Check for emotion shift
+        const snapshot = await db.collection('sharedMoments').doc(momentId).collection('candles').get();
+        const candleCounts = { grief: 0, love: 0, wonder: 0, hope: 0, anger: 0, trust: 0 };
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.emotion) candleCounts[data.emotion]++;
+        });
+        const currentEmotion = (await db.collection('sharedMoments').doc(momentId).get()).data().emotion;
+        const maxCount = Math.max(...Object.values(candleCounts));
+        const dominantEmotion = Object.keys(candleCounts).find(key => candleCounts[key] === maxCount);
+        if ((maxCount >= 10 || maxCount >= candleCounts[currentEmotion] + 5) && dominantEmotion !== currentEmotion) {
+            await db.collection('sharedMoments').doc(momentId).update({
+                emotion: dominantEmotion,
+                originalEmotion: db.collection('sharedMoments').doc(momentId).data().originalEmotion || currentEmotion
+            });
+        }
         console.log('Candle saved');
         document.querySelector('.modal').remove();
         const star = stars.find(s => s.id === momentId);
