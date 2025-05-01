@@ -255,7 +255,7 @@ function draw() {
         fill(r, g, b, alpha * 0.2 + 20 * sin(frameCount * 0.02));
         ellipse(star.pos.x, star.pos.y, haloSize, haloSize);
 
-        if (!star.read vipre {
+        if (!star.read) {
             fill(255, 255, 0, 20);
             ellipse(star.pos.x, star.pos.y, haloSize * 1.5, haloSize * 1.5);
             fill(255, 255, 0, 10);
