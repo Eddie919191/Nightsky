@@ -6,44 +6,109 @@
 
 body {
     font-family: 'Lora', serif;
-    background: #04020B;
+    background: transparent; /* Managed by ::before */
     color: #e0e0e0;
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    position: relative;
     overflow-x: hidden;
 }
 
 body.portal-bg {
-    background: linear-gradient(180deg, #04020B, #1A2B4F);
-    background-size: 100% 200%;
-    animation: subtleDrift 30s linear infinite;
+    background: transparent;
 }
 
-@keyframes subtleDrift {
-    0% { background-position: 0% 0%; }
-    100% { background-position: 0% 200%; }
+/* Background Image with Rotation */
+body.portal-bg::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
+    background-size: cover;
+    transform: rotate(180deg); /* Rotate only background */
+    transform-origin: center center;
+    z-index: -1; /* Behind all content */
 }
 
-.portals {
+/* Stars Container (Fixed to Top) */
+.stars {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     justify-content: center;
-    align-items: center;
+    gap: 30px;
+    z-index: 1000;
+}
+
+/* Individual Stars (Glow Blossoms) */
+.star {
+    display: block;
+    width: 20px;
+    height: 20px;
+    background: rgb(255, 255, 200);
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 10px rgba(255, 255, 200, 0.5), 0 0 20px rgba(255, 255, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+/* Arc Pattern for Stars */
+.star-1 { transform: translate(-120px, 20px); }
+.star-2 { transform: translate(-80px, 10px); }
+.star-3 { transform: translate(-40px, 0); }
+.star-4 { transform: translate(0, 0); }
+.star-5 { transform: translate(40px, 10px); }
+.star-6 { transform: translate(80px, 20px); }
+
+/* Hover Effect: Highlight All Stars */
+.stars:hover .star {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px rgba(255, 255, 200, 0.8), 0 0 30px rgba(255, 255, 0, 0.5);
+}
+
+/* Portals Container (Fixed to Bottom) */
+.portals {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
     gap: 50px;
     padding: 20px;
     width: 100%;
     max-width: 800px;
     opacity: 0;
     animation: fadeIn 1s ease forwards 0.5s;
+    z-index: 1001;
 }
 
+/* Portal Images */
 .portal img {
-    width: 200px;
+    width: 200px; /* Scales 512x1024px to ~200x400px */
     height: auto;
     border-radius: 10px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Gradient Overlay for Black Background Blend */
+.portals::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 400px; /* Covers ~bottom half of 400px-tall portals */
+    background: linear-gradient(to top, #0A0A23 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1002;
 }
 
 .portal img:hover {
@@ -293,7 +358,7 @@ body.agapeus-bg {
 }
 
 .modal-content button {
-    padding: 12px 24px;
+    paddingminim: 12px 24px;
     margin: 10px 5px;
     border: none;
     border-radius: 5px;
@@ -315,11 +380,11 @@ body.agapeus-bg {
 }
 
 .modal-content .candle-btn span {
-    font-size: 1.5em; /* Large fire emoji for submit */
+    font-size: 1.5em;
 }
 
 .modal-content .open-candle-btn span {
-    font-size: 1.2em; /* Smaller fire emoji for open */
+    font-size: 1.2em;
 }
 
 .modal-content .modal-buttons {
@@ -328,6 +393,7 @@ body.agapeus-bg {
     gap: 10px;
     margin-top: 20px;
 }
+
 .portal-btn {
     position: fixed;
     top: 20px;
@@ -360,7 +426,7 @@ body.agapeus-bg {
     color: #04020B;
     cursor: pointer;
     transition: background 0.3s ease;
-    font-size: 1.3em; /* Slightly smaller for the letter icon */
+    font-size: 1.3em;
     z-index: 1000;
 }
 
@@ -395,10 +461,11 @@ body.agapeus-bg {
     font-size: 0.9em;
     margin-left: 10px;
 }
+
 .chatbox {
     position: absolute;
-    background: rgba(4, 2, 11, 0.9); /* Matches Nightsky's dark, dreamy aesthetic */
-    border: 1px solid rgba(212, 160, 23, 0.5); /* Gold border like modals */
+    background: rgba(4, 2, 11, 0.9);
+    border: 1px solid rgba(212, 160, 23, 0.5);
     border-radius: 5px;
     padding: 10px;
     max-width: 200px;
@@ -407,7 +474,7 @@ body.agapeus-bg {
     font-family: 'Lora', serif;
     font-size: 0.9em;
     box-shadow: 0 2px 8px rgba(212, 160, 23, 0.3);
-    z-index: 999; /* Below modals (1000) but above canvas */
+    z-index: 999;
     opacity: 1;
     transition: opacity 0.5s ease;
 }
@@ -416,167 +483,9 @@ body.agapeus-bg {
     margin: 0;
 }
 
-/* Background Image for Portal Page */
-body.portal-bg {
-    background: url('/public/assets/images/earth_sky_bg.jpg') no-repeat center center fixed;
-    background-size: cover;
-    transform: rotate(180deg); /* Rotate image 180 degrees */
-    transform-origin: center center; /* Ensure rotation is centered */
-    animation: none; /* Remove subtleDrift animation */
-}
-
-/* Horizon Container */
-.horizon {
-    position: absolute;
-    top: 65%; /* Horizon line at 65% down the screen */
-    left: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Portals Container (Fixed to Bottom) */
-.portals {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
-    align-items: flex-end; /* Align portals to bottom */
-    gap: 50px;
-    padding: 20px;
-    width: 100%;
-    max-width: 800px;
-    opacity: 0;
-    animation: fadeIn 1s ease forwards 0.5s;
-    z-index: 1001; /* Above stars and background */
-}
-
-
-/* Portal Images */
-.portal img {
-    width: 200px;
-    height: auto;
-    border-radius: 10px;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-}
-.portals::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 150px; /* Covers portal bases */
-    background: linear-gradient(to top, #0A0A23, transparent); /* Black to transparent */
-    pointer-events: none; /* Allows clicks on portals */
-    z-index: 1002; /* Above portals but below buttons */
-}
-.portal img:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 15px rgba(212, 160, 23, 0.3);
-}
-
-/* Stars Container */
-.stars {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    z-index: 1000; /* Above background, below portals if needed */
-}
-
-/* Individual Stars (Glow Blossoms) */
-.star {
-    display: block;
-    width: 20px;
-    height: 20px;
-    background: rgb(255, 255, 200); /* Yellow glow like Nightsky */
-    border-radius: 50%;
-    position: relative;
-    box-shadow: 0 0 10px rgba(255, 255, 200, 0.5), 0 0 20px rgba(255, 255, 0, 0.3);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    cursor: pointer;
-}
-
-/* Fixed Pattern (Gentle Arc) */
-.star-1 { transform: translate(-120px, 20px); }
-.star-2 { transform: translate(-80px, 10px); }
-.star-3 { transform: translate(-40px, 0); }
-.star-4 { transform: translate(0, 0); }
-.star-5 { transform: translate(40px, 10px); }
-.star-6 { transform: translate(80px, 20px); }
-
-/* Hover Effect: Highlight All Stars */
-.stars:hover .star {
-    transform: scale(1.2);
-    box-shadow: 0 0 15px rgba(255, 255, 200, 0.8), 0 0 30px rgba(255, 255, 0, 0.5);
-}
-
+/* Responsive Adjustments */
 @media (max-width: 600px) {
-    .portals {
-        flex-direction: column;
-        gap: 20px;
-    }
-    .portal img {
-        width: 150px;
-    }
-    .chat-container {
-        width: 95%;
-    }
-    .chat-message.user {
-        margin-left: 10%;
-    }
-    .chat-message.ai {
-        margin-right: 10%;
-    }
-    .login-container {
-        width: 95%;
-    }
-    .modal-content {
-        width: 95%;
-        padding: 20px;
-    }
-    .modal-content button {
-        padding: 10px 20px;
-    }
-    .modal-content .candle-btn span {
-        font-size: 1.3em; /* Slightly smaller on mobile */
-    }
-    .modal-content .open-candle-btn span {
-        font-size: 1.1em;
-    }
-    .portal-btn {
-        padding: 8px 16px;
-        font-size: 0.9em;
-    }
-    .user-icon {
-        padding: 8px;
-        font-size: 1.3em;
-    }
-    .user-candles-modal .modal-content {
-        padding: 20px;
-    }
- .horizon {
-        top: 60%; /* Slightly higher on mobile */
-    }
-
-    .portals {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .portal img {
-        width: 150px;
-        top: -75px; /* Adjust for smaller portal size (150px / 2) */
-    }
-
-      .stars {
+    .stars {
         gap: 20px;
         top: 10px;
     }
@@ -601,10 +510,57 @@ body.portal-bg {
     }
 
     .portal img {
-        width: 150px;
+        width: 150px; /* Scales 512x1024px to ~150x300px */
     }
 
     .portals::after {
-        height: 100px; /* Shorter gradient on mobile */
+        height: 300px; /* Covers ~bottom half of 300px-tall portals */
+    }
+
+    .chat-container {
+        width: 95%;
+    }
+
+    .chat-message.user {
+        margin-left: 10%;
+    }
+
+    .chat-message.ai {
+        margin-right: 10%;
+    }
+
+    .login-container {
+        width: 95%;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+    }
+
+    .modal-content button {
+        padding: 10px 20px;
+    }
+
+    .modal-content .candle-btn span {
+        font-size: 1.3em;
+    }
+
+    .modal-content .open-candle-btn span {
+        font-size: 1.1em;
+    }
+
+    .portal-btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+
+    .user-icon {
+        padding: 8px;
+        font-size: 1.3em;
+    }
+
+    .user-candles-modal .modal-content {
+        padding: 20px;
     }
 }
