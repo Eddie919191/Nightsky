@@ -235,7 +235,7 @@ body.portal-bg::after {
     left: 0;
     width: 100%;
     height: 400px; /* Covers full ~400px-tall portals */
-    background: linear-gradient(to bottom, #0A0A23 0%, transparent 100%); /* Black to transparent */
+    background: linear-gradient(to top, #0A0A23 0%, transparent 100%); /* Black to transparent */
     pointer-events: none;
     z-index: 1002;
 }
