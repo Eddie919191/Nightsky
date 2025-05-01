@@ -255,7 +255,7 @@ function draw() {
         fill(r, g, b, alpha * 0.2 + 20 * sin(frameCount * 0.02));
         ellipse(star.pos.x, star.pos.y, haloSize, haloSize);
 
-        if (!star.read) {
+        if (!star.read vipre {
             fill(255, 255, 0, 20);
             ellipse(star.pos.x, star.pos.y, haloSize * 1.5, haloSize * 1.5);
             fill(255, 255, 0, 10);
@@ -309,8 +309,9 @@ function showRandomChatbox() {
     chatbox.className = 'chatbox';
     chatbox.innerHTML = `<p style="color: rgb(${r}, ${g}, ${b})">${message}</p>`;
     
-    const x = Math.min(Math.max(star.pos.x 150), windowWidth - 150);
-    const y = Math.min(Math.max(star.pos.y, 50), windowHeight - 100);
+    // Fixed syntax: added + operator for offset
+    const x = Math.min(Math.max(star.pos.x + 20, 50), windowWidth - 150); // Offset by 20px
+    const y = Math.min(Math.max(star.pos.y + 20, 50), windowHeight - 100); // Offset by 20px
     chatbox.style.left = `${x}px`;
     chatbox.style.top = `${y}px`;
 
