@@ -75,21 +75,22 @@ async function loadStars() {
         stars = snapshot.docs.map(doc => {
             const data = doc.data();
             console.log('Moment loaded:', doc.id, data.text, data.emotion);
+            const emotion = emotions.includes(data.emotion) ? data.emotion : 'love'; // Fallback
             const initialPos = {
                 x: centers.love.x * width + random(-50, 50),
                 y: centers.love.y * height + random(-50, 50)
             };
             return {
                 id: doc.id,
-                text: data.text,
-                emotion: data.emotion,
-                originalEmotion: data.originalEmotion || data.emotion,
+                text: data.text || '',
+                emotion: emotion,
+                originalEmotion: data.originalEmotion || emotion,
                 brightness: data.brightness || 1,
                 candles: data.candles || 0,
                 read: data.read || false,
                 pos: createVector(initialPos.x, initialPos.y),
                 vel: p5.Vector.random2D().mult(0.1),
-                target: createVector(centers[data.emotion].x * width, centers[star.emotion].y * height),
+                target: createVector(centers[emotion].x * width, centers[emotion].y * height), // Fixed
                 angle: random(TWO_PI)
             };
         });
@@ -221,7 +222,7 @@ function mousePressed() {
         const size = 4 + 20 * (1 - Math.exp(-0.2 * star.candles));
         if (dist(mouseX, mouseY, star.pos.x, star.pos.y) < size / 2) {
             db.collection('sharedMoments').doc(star.id).update({ read: true });
-            showCandleModal(star, false); // Show text-only modal first
+            showCandleModal(star, false);
         }
     });
 }
@@ -296,7 +297,7 @@ async function saveCandle(momentId) {
         if ((maxCount >= 10 || maxCount >= candleCounts[currentEmotion] + 5) && dominantEmotion !== currentEmotion) {
             await db.collection('sharedMoments').doc(momentId).update({
                 emotion: dominantEmotion,
-                originalEmotion: db.collection('sharedMoments').doc(momentId).data().originalEmotion || currentEmotion
+                originalEmotion: currentEmotion
             });
         }
         console.log('Candle saved');
