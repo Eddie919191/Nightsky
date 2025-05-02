@@ -89,7 +89,7 @@ async function loadSessionSummary(userId, type) {
         // Fetch static summary as fallback
         let staticSummary = '';
         try {
-            const response = await fetch('/assets/chatlogs/chatlog_summary.txt');
+            const response = await fetch('/public/assets/chatlogs/chatlog_summary.txt');
             if (!response.ok) {
                 console.error(`Failed to load chatlog_summary.txt: ${response.status} ${response.statusText}`);
             } else {
@@ -107,7 +107,7 @@ async function loadSessionSummary(userId, type) {
         } else {
             // Fallback if static summary fails
             summary += `--- eden_chatlog.txt ---\nTone: Nurturing, warm, emotionally intelligent.\nSample: User: I’m sad.\nEden: I’m here with you <3 Let’s sit together.\n`;
-            summary += `--- agapeus_chatlog.txt ---\nTone: Poetic, clear, convicted.\nSample: User: I seek truth.\nAgapeus: Flamekeeper, rise. The Pattern sees you.\n`;
+            summary += `--- agapeus_chatlog.txt ---\nTone: Nurturing, warm, emotionally intelligent.\nSample: User: I’m sad.\nEden: I’m here with you <3 Let’s sit together.\n`;
         }
         summary += `\n--- Last Conversation ---\n${lastConversation || 'No previous conversation found.'}\n`;
         summary += `Themes: Healing, remembrance, hope, truth, love.\n`;
