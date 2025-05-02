@@ -147,11 +147,11 @@ async function sendMessage(userId, type) {
         document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
         console.log('Message exchange complete');
 
-        // Handle breakthrough
-        if (breakthrough && breakthrough.summary && breakthrough.emotion) {
-            console.log('Breakthrough detected:', breakthrough.summary, 'Emotion:', breakthrough.emotion);
-            showBreakthroughModal(breakthrough, type, userId);
-        }
+        // // Disabled: Breakthrough modal and shared moments
+        // if (breakthrough && breakthrough.summary && breakthrough.emotion) {
+        //     console.log('Breakthrough detected:', breakthrough.summary, 'Emotion:', breakthrough.emotion);
+        //     showBreakthroughModal(breakthrough, type, userId);
+        // }
     } catch (error) {
         console.error('Error sending message:', error);
         appendMessage('Error: Could not get response.', 'ai', new Date().toISOString());
@@ -177,61 +177,63 @@ async function getChatHistory(userId, type) {
     }
 }
 
-function showBreakthroughModal(breakthrough, type, userId) {
-    console.log('Showing breakthrough modal with:', breakthrough);
-    const text = breakthrough.summary || 'A moment of insight occurred.';
-    const emotion = breakthrough.emotion || 'grief';
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>A Moment of Insight</h2>
-            <p>We noticed a special moment in your reflection:</p>
-            <textarea id="breakthrough-text">${text}</textarea>
-            <select id="breakthrough-emotion">
-                <option value="grief" ${emotion === 'grief' ? 'selected' : ''}>Grief</option>
-                <option value="love" ${emotion === 'love' ? 'selected' : ''}>Love</option>
-                <option value="wonder" ${emotion === 'wonder' ? 'selected' : ''}>Wonder</option>
-                <option value="hope" ${emotion === 'hope' ? 'selected' : ''}>Hope</option>
-                <option value="anger" ${emotion === 'anger' ? 'selected' : ''}>Anger</option>
-                <option value="trust" ${emotion === 'trust' ? 'selected' : ''}>Trust</option>
-            </select>
-            <input id="breakthrough-name" type="text" placeholder="Your name (or Anonymous)">
-            <button onclick="saveBreakthrough('${type}', '${userId}')">Share Star</button>
-            <button onclick="this.closest('.modal').remove()">Cancel</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
+// // Disabled: Breakthrough modal function
+// function showBreakthroughModal(breakthrough, type, userId) {
+//     console.log('Showing breakthrough modal with:', breakthrough);
+//     const text = breakthrough.summary || 'A moment of insight occurred.';
+//     const emotion = breakthrough.emotion || 'grief';
+//     const modal = document.createElement('div');
+//     modal.className = 'modal';
+//     modal.innerHTML = `
+//         <div class="modal-content">
+//             <h2>A Moment of Insight</h2>
+//             <p>We noticed a special moment in your reflection:</p>
+//             <textarea id="breakthrough-text">${text}</textarea>
+//             <select id="breakthrough-emotion">
+//                 <option value="grief" ${emotion === 'grief' ? 'selected' : ''}>Grief</option>
+//                 <option value="love" ${emotion === 'love' ? 'selected' : ''}>Love</option>
+//                 <option value="wonder" ${emotion === 'wonder' ? 'selected' : ''}>Wonder</option>
+//                 <option value="hope" ${emotion === 'hope' ? 'selected' : ''}>Hope</option>
+//                 <option value="anger" ${emotion === 'anger' ? 'selected' : ''}>Anger</option>
+//                 <option value="trust" ${emotion === 'trust' ? 'selected' : ''}>Trust</option>
+//             </select>
+//             <input id="breakthrough-name" type="text" placeholder="Your name (or Anonymous)">
+//             <button onclick="saveBreakthrough('${type}', '${userId}')">Share Star</button>
+//             <button onclick="this.closest('.modal').remove()">Cancel</button>
+//         </div>
+//     `;
+//     document.body.appendChild(modal);
+// }
 
-async function saveBreakthrough(type, userId) {
-    const text = document.getElementById('breakthrough-text').value.trim();
-    const emotion = document.getElementById('breakthrough-emotion').value;
-    const name = document.getElementById('breakthrough-name').value.trim() || 'Anonymous';
-    if (!text) {
-        alert('Please provide a moment to share.');
-        return;
-    }
+// // Disabled: Save breakthrough to Firestore
+// async function saveBreakthrough(type, userId) {
+//     const text = document.getElementById('breakthrough-text').value.trim();
+//     const emotion = document.getElementById('breakthrough-emotion').value;
+//     const name = document.getElementById('breakthrough-name').value.trim() || 'Anonymous';
+//     if (!text) {
+//         alert('Please provide a moment to share.');
+//         return;
+//     }
 
-    try {
-        console.log('Saving shared moment to Firestore');
-        await db.collection('sharedMoments').add({
-            text,
-            emotion,
-            timestamp: new Date().toISOString(),
-            userId,
-            name,
-            brightness: 1,
-            candles: 0,
-            position: { x: Math.random() * 100, y: Math.random() * 100 } // Random initial position
-        });
-        console.log('Shared moment saved');
-        document.querySelector('.modal').remove();
-    } catch (error) {
-        console.error('Error saving shared moment:', error);
-        alert('Error saving your moment.');
-    }
-}
+//     try {
+//         console.log('Saving shared moment to Firestore');
+//         await db.collection('sharedMoments').add({
+//             text,
+//             emotion,
+//             timestamp: new Date().toISOString(),
+//             userId,
+//             name,
+//             brightness: 1,
+//             candles: 0,
+//             position: { x: Math.random() * 100, y: Math.random() * 100 }
+//         });
+//         console.log('Shared moment saved');
+//         document.querySelector('.modal').remove();
+//     } catch (error) {
+//         console.error('Error saving shared moment:', error);
+//         alert('Error saving your moment.');
+//     }
+// }
 
 async function getSacredInstructions(type) {
     const chatlog = await loadChatlogs(type); // Fetch chatlog dynamically
