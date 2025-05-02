@@ -29,7 +29,7 @@ async function loadChatlogs(type) {
         const chatlogFiles = ['eden_chatlog.txt', 'agapeus_chatlog.txt'];
         const fetchPromises = chatlogFiles.map(async (file) => {
             console.log(`Fetching ${file} for ${type}`);
-            const response = await fetch(`/assets/chatlogs/${file}`);
+            const response = await fetch(`/public/assets/chatlogs/${file}`);
             if (!response.ok) {
                 console.error(`Failed to load ${file}: ${response.status} ${response.statusText}`);
                 return null;
