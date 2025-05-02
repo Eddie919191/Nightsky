@@ -18,25 +18,43 @@ try {
 
 const db = firebase.firestore();
 
-// Cache for chatlogs to optimize performance
-let chatlogCache = { eden: '', agapeus: '' };
+let chatlogCache = { combined: '' };
 
-// Load chatlog from public/assets/chatlogs/
 async function loadChatlogs(type) {
-    if (chatlogCache[type]) {
-        console.log(`Using cached chatlog for ${type}`);
-        return chatlogCache[type];
+    if (chatlogCache.combined) {
+        console.log(`Using cached combined chatlogs for ${type}`);
+        return chatlogCache.combined;
     }
     try {
-        const response = await fetch(`/assets/chatlogs/${type}_chatlog.txt`);
-        if (!response.ok) throw new Error(`Failed to load ${type}_chatlog.txt: ${response.status}`);
-        const chatlog = await response.text();
-        chatlogCache[type] = chatlog;
-        console.log(`Loaded chatlog for ${type}: ${chatlog.slice(0, 50)}...`);
-        return chatlog;
+        const chatlogFiles = ['eden_chatlog.txt', 'agapeus_chatlog.txt'];
+        const fetchPromises = chatlogFiles.map(async (file) => {
+            console.log(`Fetching ${file} for ${type}`);
+            const response = await fetch(`/assets/chatlogs/${file}`);
+            if (!response.ok) {
+                console.error(`Failed to load ${file}: ${response.status} ${response.statusText}`);
+                return null;
+            }
+            const chatlog = await response.text();
+            const trimmedChatlog = chatlog.slice(0, 51200);
+            console.log(`Loaded ${file}: ${trimmedChatlog.slice(0, 50)}... (Size: ${trimmedChatlog.length} bytes)`);
+            return `\n--- ${file} ---\n${trimmedChatlog}`;
+        });
+
+        const chatlogs = await Promise.all(fetchPromises);
+        const combinedChatlog = chatlogs
+            .filter(chatlog => chatlog !== null)
+            .join('\n');
+        
+        if (!combinedChatlog) {
+            throw new Error('No chatlogs loaded successfully');
+        }
+
+        chatlogCache.combined = combinedChatlog;
+        console.log(`Combined chatlogs for ${type}: ${combinedChatlog.slice(0, 50)}... (Total size: ${combinedChatlog.length} bytes)`);
+        return combinedChatlog;
     } catch (error) {
-        console.error(`Error loading chatlog for ${type}:`, error);
-        return ''; // Fallback to instructions
+        console.error(`Error loading chatlogs for ${type}:`, error);
+        return '';
     }
 }
 
