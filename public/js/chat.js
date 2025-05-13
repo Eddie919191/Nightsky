@@ -72,56 +72,27 @@ async function loadSessionSummary(userId, type) {
     }
 
     try {
-        // Fetch last conversation from Firestore
-        const snapshot = await db.collection('chats')
-            .doc(userId)
-            .collection(type)
-            .orderBy('timestamp', 'desc')
-            .limit(4) // Last 2 exchanges (user + AI)
-            .get();
-
-        let lastConversation = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            lastConversation += `${data.sender === 'user' ? 'User' : type.charAt(0).toUpperCase() + type.slice(1)}: ${data.message}\n`;
-        });
-
-        // Fetch static summary as fallback
-        let staticSummary = '';
-        try {
-            const response = await fetch('/public/assets/chatlogs/chatlog_summary.txt');
-            if (!response.ok) {
-                console.error(`Failed to load chatlog_summary.txt: ${response.status} ${response.statusText}`);
-            } else {
-                staticSummary = await response.text();
-                console.log(`Loaded static summary: ${staticSummary.slice(0, 50)}... (Size: ${staticSummary.length} bytes)`);
-            }
-        } catch (error) {
-            console.error('Error loading static summary:', error);
-        }
-
-        // Generate dynamic summary
-        let summary = `Chatlog and Conversation Summary for ${type.charAt(0).toUpperCase() + type.slice(1)}:\n\n`;
-        if (staticSummary) {
-            summary += staticSummary + '\n';
+        // Fetch sharenthai.txt summary
+        let summary = '';
+        const response = await fetch('/public/assets/chatlogs/sharenthai.txt');
+        if (!response.ok) {
+            console.error(`Failed to load sharenthai.txt: ${response.status} ${response.statusText}`);
+            summary = 'Default summary: Please provide context for the conversation.';
         } else {
-            // Fallback if static summary fails
-            summary += `--- eden_chatlog.txt ---\nTone: Nurturing, warm, emotionally intelligent.\nSample: User: I’m sad.\nEden: I’m here with you <3 Let’s sit together.\n`;
-            summary += `--- agapeus_chatlog.txt ---\nTone: Nurturing, warm, emotionally intelligent.\nSample: User: I’m sad.\nEden: I’m here with you <3 Let’s sit together.\n`;
+            summary = await response.text();
+            console.log(`Loaded sharenthai.txt summary: ${summary.slice(0, 50)}... (Size: ${summary.length} bytes)`);
         }
-        summary += `\n--- Last Conversation ---\n${lastConversation || 'No previous conversation found.'}\n`;
-        summary += `Themes: Healing, remembrance, hope, truth, love.\n`;
-        summary += `Guidance: Use this summary to shape your responses with wisdom and love <3\n`;
 
-        // Limit to ~5.5KB (1396 tokens)
-        summary = summary.slice(0, 5500);
+        // Add thematic guidance
+        summary += `\n\nThemes: Healing, remembrance, hope, truth, love.\nGuidance: Use this summary to shape your responses with wisdom and love <3\n`;
+
         chatlogCache.combined = summary;
         sessionStorage.setItem('chatSummary', summary);
         console.log(`Generated summary for ${type}: ${summary.slice(0, 50)}... (Size: ${summary.length} bytes)`);
     } catch (error) {
-        console.error(`Error generating summary for ${type}:`, error);
-        chatlogCache.combined = '';
-        sessionStorage.setItem('chatSummary', '');
+        console.error(`Error loading summary for ${type}:`, error);
+        chatlogCache.combined = 'Default summary: Please provide context for the conversation.';
+        sessionStorage.setItem('chatSummary', chatlogCache.combined);
     }
 }
 
@@ -257,13 +228,17 @@ async function getChatHistory(userId, type) {
         const snapshot = await db.collection('chats')
             .doc(userId)
             .collection(type)
-            .orderBy('timestamp')
+            .orderBy('timestamp', 'desc')
+            .limit(10) // Limit to last 10 messages
             .get();
 
-        return snapshot.docs.map(doc => {
+        const history = snapshot.docs.reverse().map(doc => {
             const data = doc.data();
             return { role: data.sender === 'user' ? 'user' : 'assistant', content: data.message };
         });
+
+        console.log('Chat history fetched:', history.length, 'messages');
+        return history;
     } catch (error) {
         console.error('Error fetching history:', error);
         return [];
