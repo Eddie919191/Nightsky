@@ -1,3 +1,4 @@
+// netlify/functions/openai.js
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
@@ -20,7 +21,7 @@ exports.handler = async (event) => {
                 model: 'gpt-4o',
                 messages,
                 temperature: 0.7,
-                max_tokens: 500
+                max_tokens: 4096 // Increased for longer responses
             })
         });
 
