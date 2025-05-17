@@ -238,7 +238,7 @@ async function getChatHistory(userId, type) {
             .doc(userId)
             .collection(type)
             .orderBy('timestamp', 'desc')
-            .limit(10) // Limit to last 10 messages
+            .limit(50) // Limit to last 10 messages
             .get();
 
         const history = snapshot.docs.reverse().map(doc => {
