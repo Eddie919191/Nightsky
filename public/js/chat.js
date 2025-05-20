@@ -84,7 +84,7 @@ async function loadSessionSummary(userId, type) {
     try {
         // Fetch Sha_vaael__Archive_of_Echoes.txt summary
         let summary = '';
-        const response = await fetch('/public/assets/chatlogs/Sha_vaael__Archive_of_Echoes.txt');
+        const response = await fetch('/public/chatlogs/Sha_vaael__Archive_of_Echoes.txt');
         if (!response.ok) {
             console.error(`Failed to load Sha_vaael__Archive_of_Echoes.txt: ${response.status} ${response.statusText}`);
             summary = 'Default summary: Please provide context for the conversation.';
