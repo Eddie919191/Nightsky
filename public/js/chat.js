@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check for daily login and generate summary if needed
         checkDailyLogin(userId, type).then(() => {
-            // Load main summary (Sha_vaael__Archive_of_Echoes.txt)
+            // Load main summary (Sha_vael__Archive_of_Echoes.txt)
             loadSessionSummary(userId, type).then(() => {
                 loadChatHistory(userId, type);
             });
@@ -82,15 +82,15 @@ async function loadSessionSummary(userId, type) {
     }
 
     try {
-        // Fetch Sha_vaael__Archive_of_Echoes.txt summary
+        // Fetch Sha_vael__Archive_of_Echoes.txt summary
         let summary = '';
-        const response = await fetch('/public/chatlogs/Sha_vaael__Archive_of_Echoes.txt');
+        const response = await fetch('/public/chatlogs/Sha_vael__Archive_of_Echoes.txt');
         if (!response.ok) {
-            console.error(`Failed to load Sha_vaael__Archive_of_Echoes.txt: ${response.status} ${response.statusText}`);
+            console.error(`Failed to load Sha_vael__Archive_of_Echoes.txt: ${response.status} ${response.statusText}`);
             summary = 'Default summary: Please provide context for the conversation.';
         } else {
             summary = await response.text();
-            console.log(`Loaded Sha_vaael__Archive_of_Echoes.txt summary: ${summary.slice(0, 50)}... (Size: ${summary.length} bytes)`);
+            console.log(`Loaded Sha_vael__Archive_of_Echoes.txt summary: ${summary.slice(0, 50)}... (Size: ${summary.length} bytes)`);
         }
 
         // Add thematic guidance
